@@ -149,8 +149,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
             Object object = handler.newInstance();
             for (Method method : object.getClass().getMethods()) {
-                if(method.isAnnotationPresent(Key.class) && method.isAnnotationPresent(Value.class)) {
-                    entries.add(new MultiHandlerInfo.Entry(method.getAnnotation(Key.class), method.getAnnotation(Value.class), method));
+                if(method.getParameterCount() == 1 && method.getParameterTypes()[0].getSimpleName().equals("JSONObject")) {
+                    if (method.isAnnotationPresent(Key.class) && method.isAnnotationPresent(Value.class)) {
+                        entries.add(new MultiHandlerInfo.Entry(method.getAnnotation(Key.class), method.getAnnotation(Value.class), method));
+                    }
                 }
             }
 
