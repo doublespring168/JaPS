@@ -86,10 +86,11 @@ public class JaPSServer implements Runnable {
 
         if(channelSessions.containsKey(channel)) {
             channelSessions.get(channel).add(connection);
-            return;
+        } else {
+            channelSessions.put(channel, new ArrayList<>(Collections.singletonList(connection)));
         }
 
-        channelSessions.put(channel, new ArrayList<>(Collections.singletonList(connection)));
+        LOGGER.log(Level.INFO, "[{0}] Channel subscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
     }
 
     public void unsubscribeChannel(String channel, Connection connection) {
@@ -97,7 +98,7 @@ public class JaPSServer implements Runnable {
         if(channelSessions.containsKey(channel)) {
             channelSessions.get(channel).remove(connection);
 
-            LOGGER.log(Level.INFO, "[{0}] Channel unregistered: {1}", new Object[] {connection.remoteAddress().toString(), channel});
+            LOGGER.log(Level.INFO, "[{0}] Channel unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
         }
     }
 
@@ -141,19 +142,24 @@ public class JaPSServer implements Runnable {
                     }
 
                     if(key.isAcceptable()) {
+                        // Accept the socket channel
                         SocketChannel socketChannel = serverSocketChannel.accept();
 
                         if(socketChannel == null) {
                             continue;
                         }
 
+                        // Configure non blocking and disable the Nagle algorithm
                         socketChannel.configureBlocking(false);
                         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
                         LOGGER.log(Level.INFO, "[{0}] New connection", socketChannel.getRemoteAddress());
 
-                        Connection session = new Connection(this, socketChannel);
-                        socketChannel.register(selector, SelectionKey.OP_READ).attach(session);
+                        // Create new connection object
+                        Connection connection = new Connection(this, socketChannel);
+
+                        // Register OP_READ and attach the connection object to it
+                        socketChannel.register(selector, SelectionKey.OP_READ, connection);
                     }
 
                     if(key.isReadable()) {

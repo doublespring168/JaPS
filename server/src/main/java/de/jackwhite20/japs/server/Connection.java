@@ -155,8 +155,6 @@ public class Connection {
 
                             server.subscribeChannel(channelToRegister, this);
                             channels.add(channelToRegister);
-
-                            LOGGER.log(Level.INFO, "[{0}] Channel registered: {1}", new Object[] {remoteAddress.toString(), channelToRegister});
                             break;
                         case 1:
                             String channelToRemove = jsonObject.getString("ch");
