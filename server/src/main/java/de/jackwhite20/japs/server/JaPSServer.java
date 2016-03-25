@@ -27,8 +27,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -48,6 +48,8 @@ public class JaPSServer implements Runnable {
     private Selector selector;
 
     private ServerSocketChannel serverSocketChannel;
+
+    private Map<String, List<Connection>> channelSessions = new ConcurrentHashMap<>();
 
     public JaPSServer(String host, int port, int backlog) {
 
@@ -77,6 +79,43 @@ public class JaPSServer implements Runnable {
             LOGGER.log(Level.INFO, "JaPS server started on {0}:{1}", new Object[] {host, String.valueOf(port)});
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void subscribeChannel(String channel, Connection connection) {
+
+        if(channelSessions.containsKey(channel)) {
+            channelSessions.get(channel).add(connection);
+            return;
+        }
+
+        channelSessions.put(channel, new ArrayList<>(Collections.singletonList(connection)));
+    }
+
+    public void unsubscribeChannel(String channel, Connection connection) {
+
+        if(channelSessions.containsKey(channel)) {
+            channelSessions.get(channel).remove(connection);
+
+            LOGGER.log(Level.INFO, "[{0}] Channel unregistered: {1}", new Object[] {connection.remoteAddress().toString(), channel});
+        }
+    }
+
+    public void removeClient(Connection connection) {
+
+        for (String s : connection.channels()) {
+            channelSessions.get(s).remove(connection);
+        }
+
+        if(!connection.channels().isEmpty()) {
+            LOGGER.log(Level.INFO, "[{0}] Channels unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), String.join(", ", connection.channels())});
+        }
+    }
+
+    public void broadcast(String channel, String data) {
+
+        if(channelSessions.containsKey(channel)) {
+            channelSessions.get(channel).forEach(session -> session.send(data));
         }
     }
 
@@ -111,13 +150,17 @@ public class JaPSServer implements Runnable {
                         socketChannel.configureBlocking(false);
                         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
-                        LOGGER.log(Level.INFO, "New connection from {0}", socketChannel.getRemoteAddress());
+                        LOGGER.log(Level.INFO, "[{0}] New connection", socketChannel.getRemoteAddress());
 
-                        // TODO: 25.03.2016
+                        Connection session = new Connection(this, socketChannel);
+                        socketChannel.register(selector, SelectionKey.OP_READ).attach(session);
                     }
 
                     if(key.isReadable()) {
-                        // TODO: 25.03.2016  
+                        Connection connection = ((Connection) key.attachment());
+                        if(connection != null) {
+                            connection.read();
+                        }
                     }
                 }
 
