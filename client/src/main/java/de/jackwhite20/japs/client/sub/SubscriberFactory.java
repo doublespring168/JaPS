@@ -17,24 +17,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.client.pub;
+package de.jackwhite20.japs.client.sub;
 
-import de.jackwhite20.japs.client.pub.impl.PublisherImpl;
+import de.jackwhite20.japs.client.sub.impl.SubscriberImpl;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class PublisherFactory {
+public class SubscriberFactory {
 
     /**
-     * Creates a new publisher instance which connects to the given host and port.
+     * Creates a new subscriber instance which connects to the given host and port.
      *
      * @param host The host to connect to.
      * @param port The port to connect to.
-     * @return A new instance of a publisher implementation.
+     * @return A new instance of a subscriber implementation.
      */
-    public static Publisher create(String host, int port) {
+    public static Subscriber create(String host, int port) {
 
-        return new PublisherImpl(host, port);
+        return new SubscriberImpl(host, port);
     }
 }

@@ -17,24 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.client.pub;
-
-import de.jackwhite20.japs.client.pub.impl.PublisherImpl;
+package de.jackwhite20.japs.client.sub.impl.handler;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class PublisherFactory {
+public abstract class ChannelHandler<T> {
 
-    /**
-     * Creates a new publisher instance which connects to the given host and port.
-     *
-     * @param host The host to connect to.
-     * @param port The port to connect to.
-     * @return A new instance of a publisher implementation.
-     */
-    public static Publisher create(String host, int port) {
-
-        return new PublisherImpl(host, port);
-    }
+    public abstract void onMessage(String channel, T message);
 }
+
