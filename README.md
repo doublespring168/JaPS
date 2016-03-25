@@ -33,6 +33,44 @@ Publisher publisher = PublisherFactory.create("localhost", 1337);
 JSONObject jsonObject = new JSONObject();
 jsonObject.put("foo", "bar");
 publisher.publish("test", jsonObject);
+
+JSONObject backendJson = new JSONObject();
+backendJson.put("role", "update");
+backendJson.put("ping", 5);
+publisher.publish("backend", backendJson);
+```
+
+_Subscriber:_
+```java
+Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
+subscriber.subscribe("test", TestChannelHandler.class);
+subscriber.subscribeMulti("backend", BackendMultiChannelHandler.class);
+```
+
+_TestChannelHandler:_
+```java
+public class TestChannelHandler extends ChannelHandler<JSONObject> {
+
+    @Override
+    public void onMessage(String channel, JSONObject message) {
+
+        System.out.println("TestChannelHandler: foo=" + message.get("foo"));
+    }
+}
+```
+
+_BackendMultiChannelHandler:_
+```java
+public class BackendMultiChannelHandler {
+
+    @Key("role")
+    @Value("update")
+    public void onBackendRoleUpdate(JSONObject jsonObject) {
+
+		// Keep in mind that the key (here "role") will be removed before invocation
+        System.out.println("BMCH[role=update]: ping=" + jsonObject.getInt("ping"));
+    }
+}
 ```
 
 ### License
