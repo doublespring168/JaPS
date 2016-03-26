@@ -54,7 +54,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private Selector selector;
 
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
+    private ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
 
     private static HashMap<String, HandlerInfo> handlers = new HashMap<>();
 
@@ -223,6 +223,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
                     if(key.isReadable()) {
                         int read = socketChannel.read(byteBuffer);
+
                         if(read == -1) {
                             disconnect();
                             return;

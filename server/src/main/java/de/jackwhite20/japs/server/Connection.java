@@ -39,6 +39,8 @@ public class Connection {
 
     private static final int INITIAL_STRING_BUILDER_SIZE = 256;
 
+    private static final int BUFFER_GROW_FACTOR = 2;
+
     private boolean connected = true;
 
     private ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
@@ -100,9 +102,16 @@ public class Connection {
 
         try {
             int read = socketChannel.read(byteBuffer);
+
+            // Read is -1 if connection is closed
+            if(read == -1) {
+                close();
+                return;
+            }
+
             // Resize buffer and read the rest if the buffer was too small
             if(byteBuffer.remaining() == 0) {
-                ByteBuffer temp = ByteBuffer.allocate(byteBuffer.capacity() * 2);
+                ByteBuffer temp = ByteBuffer.allocate(byteBuffer.capacity() * BUFFER_GROW_FACTOR);
                 byteBuffer.flip();
                 temp.put(byteBuffer);
                 byteBuffer = temp;
@@ -114,11 +123,6 @@ public class Connection {
 
                 // Read again to read the left packet
                 read();
-            }
-
-            if(read == -1) {
-                close();
-                return;
             }
 
             byteBuffer.flip();
