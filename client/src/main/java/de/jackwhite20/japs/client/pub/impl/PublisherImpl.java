@@ -19,6 +19,7 @@
 
 package de.jackwhite20.japs.client.pub.impl;
 
+import com.google.gson.Gson;
 import de.jackwhite20.japs.client.pub.Publisher;
 import de.jackwhite20.japs.client.pub.impl.exception.PublisherConnectException;
 import org.json.JSONException;
@@ -42,6 +43,8 @@ public class PublisherImpl implements Publisher {
     private int port;
 
     private SocketChannel socketChannel;
+
+    private Gson gson = new Gson();
 
     public PublisherImpl(String host, int port) {
 
@@ -121,6 +124,17 @@ public class PublisherImpl implements Publisher {
         } catch (JSONException e) {
             throw new IllegalArgumentException("invalid json: " + json);
         }
+    }
+
+    @Override
+    public void publish(String channel, Object object) {
+
+        if(object == null) {
+            throw new IllegalArgumentException("object cannot be null");
+        }
+
+        // Publish the serialized object as json string
+        publish(channel, gson.toJson(object));
     }
 
     @Override

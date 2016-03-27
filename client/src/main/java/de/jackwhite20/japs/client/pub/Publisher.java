@@ -48,6 +48,15 @@ public interface Publisher {
     void publish(String channel, String json);
 
     /**
+     * Publishes the given object as json string to the given channel.
+     * The object will be serialized with gson to a json string.
+     *
+     * @param channel The channel.
+     * @param object The object which can be serialized with gson.
+     */
+    void publish(String channel, Object object);
+
+    /**
      * Returns if the publisher is connected.
      *
      * @return True if connected, otherwise false.
