@@ -30,14 +30,17 @@ _Publisher:_
 ```java
 Publisher publisher = PublisherFactory.create("localhost", 1337);
 
-JSONObject jsonObject = new JSONObject();
-jsonObject.put("foo", "bar");
-publisher.publish("test", jsonObject);
+JSONObject fooBar = new JSONObject();
+fooBar.put("foo", "bar");
+publisher.publish("test", fooBar);
+
+publisher.publish("gson", fooBar);
 
 JSONObject backendJson = new JSONObject();
 backendJson.put("role", "update");
 backendJson.put("ping", 5);
 publisher.publish("backend", backendJson);
+
 ```
 
 _Subscriber:_
@@ -45,6 +48,7 @@ _Subscriber:_
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
 subscriber.subscribe("test", TestChannelHandler.class);
 subscriber.subscribeMulti("backend", BackendMultiChannelHandler.class);
+subscriber.subscribe("gson", GsonChannelHandler.class);
 ```
 
 _TestChannelHandler:_
@@ -69,6 +73,34 @@ public class BackendMultiChannelHandler {
 
 		// Keep in mind that the key (here "role") will be removed before invocation
         System.out.println("BMCH[role=update]: ping=" + jsonObject.getInt("ping"));
+    }
+}
+```
+
+_GsonChannelHandler:_
+```java
+public class GsonChannelHandler extends ChannelHandler<FooBar> {
+
+    @Override
+    public void onMessage(String channel, FooBar fooBar) {
+
+        System.out.println("FooBar class: " + fooBar.toString());
+    }
+}
+```
+
+_The simple FooBar class:_
+```java
+public class FooBar {
+
+    private String foo;
+
+    @Override
+    public String toString() {
+
+        return "FooBar{" +
+                "foo='" + foo + '\'' +
+                '}';
     }
 }
 ```
