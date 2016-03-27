@@ -91,7 +91,7 @@ public class PublisherImpl implements Publisher {
             throw new IllegalArgumentException("channel cannot be null or empty");
         }
 
-        if(jsonObject == null || jsonObject.toString().isEmpty()) {
+        if(jsonObject == null || jsonObject.length() == 0) {
             throw new IllegalArgumentException("jsonObject cannot be null or empty");
         }
 
