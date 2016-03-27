@@ -100,6 +100,15 @@ public class SubscriberImpl implements Subscriber, Runnable {
         connectLatch.countDown();
     }
 
+    private void write(String data) {
+
+        try {
+            socketChannel.write(ByteBuffer.wrap((data + "\n").getBytes()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void disconnect() {
 
@@ -135,7 +144,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             jsonObject.put("op", 0);
             jsonObject.put("ch", channel);
 
-            socketChannel.write(ByteBuffer.wrap((jsonObject.toString() + "\n").getBytes()));
+            write(jsonObject.toString());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -162,7 +171,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             jsonObject.put("op", 0);
             jsonObject.put("ch", channel);
 
-            socketChannel.write(ByteBuffer.wrap((jsonObject.toString() + "\n").getBytes()));
+            write(jsonObject.toString());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -177,11 +186,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
         jsonObject.put("op", 1);
         jsonObject.put("ch", channel);
 
-        try {
-            socketChannel.write(ByteBuffer.wrap((jsonObject.toString() + "\n").getBytes()));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        write(jsonObject.toString());
     }
 
     @Override
