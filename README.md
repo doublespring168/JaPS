@@ -34,7 +34,9 @@ JSONObject fooBar = new JSONObject();
 fooBar.put("foo", "bar");
 publisher.publish("test", fooBar);
 
+// Both will work
 publisher.publish("gson", fooBar);
+publisher.publish("gson", new FooBar("bar"));
 
 JSONObject backendJson = new JSONObject();
 backendJson.put("role", "update");
@@ -93,7 +95,12 @@ _The simple FooBar class:_
 ```java
 public class FooBar {
 
-    private String foo;
+	private String foo;
+
+    public FooBar(String foo) {
+
+        this.foo = foo;
+    }
 
     @Override
     public String toString() {
