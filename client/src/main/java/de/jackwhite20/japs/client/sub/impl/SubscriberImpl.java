@@ -151,7 +151,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void subscribeMulti(String channel, Class<?> handler) {
+    public void subscribeMulti(Class<?> handler) {
+
+        if(!handler.isAnnotationPresent(Channel.class)) {
+            throw new IllegalArgumentException("the handler class has no 'Channel' annotation");
+        }
 
         try {
             List<MultiHandlerInfo.Entry> entries = new ArrayList<>();
@@ -163,6 +167,12 @@ public class SubscriberImpl implements Subscriber, Runnable {
                         entries.add(new MultiHandlerInfo.Entry(method.getAnnotation(Key.class), method.getAnnotation(Value.class), method));
                     }
                 }
+            }
+
+            String channel = handler.getAnnotation(Channel.class).value();
+
+            if(channel.isEmpty()) {
+                throw new IllegalStateException("channel is empty");
             }
 
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));

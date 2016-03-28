@@ -41,11 +41,11 @@ public interface Subscriber {
 
     /**
      * Subscribes a channel and sets the multi handler for it.
+     * The class need a Channel annotation with the channel the class is responsible for.
      *
-     * @param channel The channel to subscribe.
      * @param handler The handler which is responsible for the messages received in that channel and the key value method matches.
      */
-    void subscribeMulti(String channel, Class<?> handler);
+    void subscribeMulti(Class<?> handler);
 
     /**
      * Unsubscribe a channel.
