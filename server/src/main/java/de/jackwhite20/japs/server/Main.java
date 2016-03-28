@@ -51,7 +51,9 @@ public class Main {
         if(args.length > 0) {
             if(args.length == 2) {
                 config = new Config(args[0], Integer.parseInt(args[1]), 50);
+                LOGGER.info("Using default backlog of 50");
             } else if(args.length == 3) {
+                LOGGER.log(Level.INFO, "Using backlog of {0}", args[2]);
                 config = new Config(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]));
             } else {
                 System.out.println("Usage: java -jar japs-server.jar <Host> <Port> [Backlog]");
