@@ -49,7 +49,7 @@ _Subscriber:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
 subscriber.subscribe("test", TestChannelHandler.class);
-subscriber.subscribeMulti("backend", BackendMultiChannelHandler.class);
+subscriber.subscribeMulti(BackendMultiChannelHandler.class);
 subscriber.subscribe("gson", GsonChannelHandler.class);
 ```
 
@@ -67,6 +67,7 @@ public class TestChannelHandler extends ChannelHandler<JSONObject> {
 
 _BackendMultiChannelHandler:_
 ```java
+@Channel("backend")
 public class BackendMultiChannelHandler {
 
     @Key("role")
