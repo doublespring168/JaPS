@@ -45,7 +45,7 @@ public interface Subscriber {
      *
      * @param handler The handler which is responsible for the messages received in that channel and the key value method matches.
      */
-    void subscribeMulti(Class<?> handler);
+    void subscribe(Class<?> handler);
 
     /**
      * Unsubscribe a channel.

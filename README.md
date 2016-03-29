@@ -49,7 +49,7 @@ _Subscriber:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
 subscriber.subscribe("test", TestChannelHandler.class);
-subscriber.subscribeMulti(BackendMultiChannelHandler.class);
+subscriber.subscribe(BackendMultiChannelHandler.class);
 subscriber.subscribe("gson", GsonChannelHandler.class);
 ```
 

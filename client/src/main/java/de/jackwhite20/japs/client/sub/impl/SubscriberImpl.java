@@ -151,7 +151,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void subscribeMulti(Class<?> handler) {
+    public void subscribe(Class<?> handler) {
 
         if(!handler.isAnnotationPresent(Channel.class)) {
             throw new IllegalArgumentException("the handler class has no 'Channel' annotation");
