@@ -172,7 +172,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             String channel = handler.getAnnotation(Channel.class).value();
 
             if(channel.isEmpty()) {
-                throw new IllegalStateException("channel is empty");
+                throw new IllegalStateException("value of the 'Channel' annotation of class " + handler.getSimpleName() + " is empty");
             }
 
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));
