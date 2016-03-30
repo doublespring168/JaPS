@@ -266,7 +266,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
                                 HandlerInfo handlerInfo = handlers.get(channel);
 
                                 if(handlerInfo != null) {
-                                    if (handlerInfo.clazz().getSimpleName().equals("JSONObject")) {
+                                    if (handlerInfo.classType() == ClassType.JSON) {
                                         handlerInfo.messageHandler().onMessage(channel, jsonObject);
                                     } else {
                                         handlerInfo.messageHandler().onMessage(channel, gson.fromJson(jsonObject.toString(), handlerInfo.clazz()));

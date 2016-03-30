@@ -30,11 +30,14 @@ public class HandlerInfo<T> {
 
     private Class<?> clazz;
 
+    private ClassType classType;
+
     public HandlerInfo(ChannelHandler<T> messageHandler) {
 
         this.messageHandler = messageHandler;
         //noinspection unchecked
         this.clazz = (Class<T>) ((ParameterizedType) messageHandler.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+        this.classType = (this.clazz.getSimpleName().equals("JSONObject")) ? ClassType.JSON : ClassType.GSON;
     }
 
     public ChannelHandler<T> messageHandler() {
@@ -45,5 +48,10 @@ public class HandlerInfo<T> {
     public Class<?> clazz() {
 
         return clazz;
+    }
+
+    public ClassType classType() {
+
+        return classType;
     }
 }
