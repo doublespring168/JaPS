@@ -259,9 +259,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
                                 JSONObject jsonObject = new JSONObject(jsonLine);
 
-                                String channel = jsonObject.getString("ch");
+                                String channel = ((String) jsonObject.remove("ch"));
 
-                                jsonObject.remove("ch");
+                                if(channel == null || channel.isEmpty()) {
+                                    continue;
+                                }
 
                                 HandlerInfo handlerInfo = handlers.get(channel);
 

@@ -144,13 +144,10 @@ public class Connection {
                         break;
                     }
 
-                    int op = jsonObject.getInt("op");
+                    int op = ((Integer) jsonObject.remove("op"));
 
                     switch (op) {
                         case 2:
-                            // Remove the unnecessary data
-                            jsonObject.remove("op");
-
                             // Broadcast it to all subscriber
                             server.broadcast(jsonObject.getString("ch"), jsonObject.toString());
                             break;
