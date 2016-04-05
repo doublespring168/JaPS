@@ -30,11 +30,14 @@ public class Config {
 
     private int backlog = 50;
 
-    public Config(String host, int port, int backlog) {
+    private boolean debug = true;
+
+    public Config(String host, int port, int backlog, boolean debug) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
+        this.debug = debug;
     }
 
     public String host() {
@@ -52,6 +55,11 @@ public class Config {
         return backlog;
     }
 
+    public boolean debug() {
+
+        return debug;
+    }
+
     @Override
     public String toString() {
 
@@ -59,6 +67,7 @@ public class Config {
                 "host='" + host + '\'' +
                 ", port=" + port +
                 ", backlog=" + backlog +
+                ", debug=" + debug +
                 '}';
     }
 }

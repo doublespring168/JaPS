@@ -51,18 +51,20 @@ public class JaPSServer implements Runnable {
 
     private Map<String, List<Connection>> channelSessions = new ConcurrentHashMap<>();
 
-    public JaPSServer(String host, int port, int backlog) {
+    public JaPSServer(String host, int port, int backlog, boolean debug) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
+
+        Logger.getLogger("de.jackwhite20").setLevel((debug) ? Level.FINE : Level.INFO);
 
         start();
     }
 
     public JaPSServer(Config config) {
 
-        this(config.host(), config.port(), config.backlog());
+        this(config.host(), config.port(), config.backlog(), config.debug());
     }
 
     private void start() {
@@ -90,7 +92,7 @@ public class JaPSServer implements Runnable {
             channelSessions.put(channel, new ArrayList<>(Collections.singletonList(connection)));
         }
 
-        LOGGER.log(Level.INFO, "[{0}] Channel subscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
+        LOGGER.log(Level.FINE, "[{0}] Channel subscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
     }
 
     public void unsubscribeChannel(String channel, Connection connection) {
@@ -98,7 +100,7 @@ public class JaPSServer implements Runnable {
         if(channelSessions.containsKey(channel)) {
             channelSessions.get(channel).remove(connection);
 
-            LOGGER.log(Level.INFO, "[{0}] Channel unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
+            LOGGER.log(Level.FINE, "[{0}] Channel unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
         }
     }
 
@@ -109,7 +111,7 @@ public class JaPSServer implements Runnable {
         }
 
         if(!connection.channels().isEmpty()) {
-            LOGGER.log(Level.INFO, "[{0}] Channels unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), String.join(", ", connection.channels())});
+            LOGGER.log(Level.FINE, "[{0}] Channels unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), String.join(", ", connection.channels())});
         }
     }
 
@@ -153,7 +155,7 @@ public class JaPSServer implements Runnable {
                         socketChannel.configureBlocking(false);
                         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
-                        LOGGER.log(Level.INFO, "[{0}] New connection", socketChannel.getRemoteAddress());
+                        LOGGER.log(Level.FINE, "[{0}] New connection", socketChannel.getRemoteAddress());
 
                         // Create new connection object
                         Connection connection = new Connection(this, socketChannel);

@@ -93,7 +93,7 @@ public class Connection {
 
         server.removeClient(this);
 
-        LOGGER.log(Level.INFO, "[{0}] Connection closed", remoteAddress.toString());
+        LOGGER.log(Level.FINE, "[{0}] Connection closed", remoteAddress.toString());
     }
 
     public void read() {

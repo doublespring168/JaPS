@@ -50,13 +50,16 @@ public class Main {
 
         if(args.length > 0) {
             if(args.length == 2) {
-                config = new Config(args[0], Integer.parseInt(args[1]), 50);
+                config = new Config(args[0], Integer.parseInt(args[1]), 50, true);
                 LOGGER.info("Using default backlog of 50");
             } else if(args.length == 3) {
                 LOGGER.log(Level.INFO, "Using backlog of {0}", args[2]);
-                config = new Config(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+                config = new Config(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]), true);
+            } else if(args.length == 4) {
+                LOGGER.log(Level.INFO, "Using backlog of {0}", args[2]);
+                config = new Config(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]), !args[3].equalsIgnoreCase("info"));
             } else {
-                System.out.println("Usage: java -jar japs-server.jar <Host> <Port> [Backlog]");
+                System.out.println("Usage: java -jar japs-server.jar <Host> <Port> [Backlog] [debug|info]");
                 System.exit(-1);
             }
         } else {
@@ -92,6 +95,7 @@ public class Main {
 
         ConsoleHandler consoleHandler = new ConsoleHandler();
         consoleHandler.setFormatter(new ConsoleFormatter());
+        consoleHandler.setLevel(Level.ALL);
 
         Logger globalLogger = Logger.getLogger("");
         globalLogger.setLevel(Level.OFF);
@@ -101,7 +105,7 @@ public class Main {
         }
 
         Logger japsLogger = Logger.getLogger("de.jackwhite20");
-        japsLogger.setLevel(Level.INFO);
+        japsLogger.setLevel(Level.ALL);
         japsLogger.addHandler(consoleHandler);
     }
 }
