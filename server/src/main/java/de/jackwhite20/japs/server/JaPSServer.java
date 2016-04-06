@@ -20,6 +20,7 @@
 package de.jackwhite20.japs.server;
 
 import de.jackwhite20.japs.server.config.Config;
+import de.jackwhite20.japs.server.util.RoundRobinList;
 
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
@@ -56,6 +57,8 @@ public class JaPSServer implements Runnable {
 
     private List<SelectorThread> selectorThreads = new ArrayList<>();
 
+    private RoundRobinList<SelectorThread> selectorRoundRobin;
+
     private ExecutorService workerPool;
 
     private AtomicInteger selectorCounter = new AtomicInteger(0);
@@ -79,18 +82,6 @@ public class JaPSServer implements Runnable {
         this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads());
     }
 
-    private SelectorThread nextSelector() {
-
-        int next = selectorCounter.getAndIncrement();
-
-        if(next >= selectorThreads.size()) {
-            selectorCounter.set(0);
-            next = 0;
-        }
-
-        return selectorThreads.get(next);
-    }
-
     private void start() {
 
         try {
@@ -110,6 +101,8 @@ public class JaPSServer implements Runnable {
 
                 workerPool.execute(selectorThread);
             }
+
+            selectorRoundRobin = new RoundRobinList<>(selectorThreads);
 
             LOGGER.log(Level.INFO, "JaPS server started on {0}:{1}", new Object[] {host, String.valueOf(port)});
         } catch (Exception e) {
@@ -188,14 +181,12 @@ public class JaPSServer implements Runnable {
                         socketChannel.configureBlocking(false);
                         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
-
                         // Create new connection object
                         Connection connection = new Connection(this, socketChannel);
 
-                        SelectorThread nextSelector = nextSelector();
+                        // Get a new selector thread based on round robin
+                        SelectorThread nextSelector = selectorRoundRobin.next();
                         Selector sel = nextSelector.selector();
-
-                        LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[] {socketChannel.getRemoteAddress(), nextSelector.id()});
 
                         // Lock the selectors
                         selectorLock.lock();
@@ -210,6 +201,8 @@ public class JaPSServer implements Runnable {
                             // Unlock the lock
                             selectorLock.unlock();
                         }
+
+                        LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[] {socketChannel.getRemoteAddress(), nextSelector.id()});
                     }
                 }
 
