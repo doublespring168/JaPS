@@ -2,5 +2,6 @@
   "host": "localhost",
   "port": 1337,
   "backlog": 50,
-  "debug": true
+  "debug": true,
+  "workerThreads": 4
 }

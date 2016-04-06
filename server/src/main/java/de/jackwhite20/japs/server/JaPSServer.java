@@ -23,12 +23,13 @@ import de.jackwhite20.japs.server.config.Config;
 
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,11 +52,22 @@ public class JaPSServer implements Runnable {
 
     private Map<String, List<Connection>> channelSessions = new ConcurrentHashMap<>();
 
-    public JaPSServer(String host, int port, int backlog, boolean debug) {
+    private ReentrantLock selectorLock = new ReentrantLock();
+
+    private List<SelectorThread> selectorThreads = new ArrayList<>();
+
+    private ExecutorService workerPool;
+
+    private AtomicInteger selectorCounter = new AtomicInteger(0);
+
+    private int workerThreads;
+
+    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
+        this.workerThreads = workerThreads;
 
         Logger.getLogger("de.jackwhite20").setLevel((debug) ? Level.FINE : Level.INFO);
 
@@ -64,7 +76,19 @@ public class JaPSServer implements Runnable {
 
     public JaPSServer(Config config) {
 
-        this(config.host(), config.port(), config.backlog(), config.debug());
+        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads());
+    }
+
+    private SelectorThread nextSelector() {
+
+        int next = selectorCounter.getAndIncrement();
+
+        if(next >= selectorThreads.size()) {
+            selectorCounter.set(0);
+            next = 0;
+        }
+
+        return selectorThreads.get(next);
     }
 
     private void start() {
@@ -76,7 +100,16 @@ public class JaPSServer implements Runnable {
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            new Thread(this).start();
+            workerPool = Executors.newFixedThreadPool(workerThreads + 1);
+
+            workerPool.execute(this);
+
+            for (int i = 1; i <= workerThreads; i++) {
+                SelectorThread selectorThread = new SelectorThread(i, selectorLock);
+                selectorThreads.add(selectorThread);
+
+                workerPool.execute(selectorThread);
+            }
 
             LOGGER.log(Level.INFO, "JaPS server started on {0}:{1}", new Object[] {host, String.valueOf(port)});
         } catch (Exception e) {
@@ -155,19 +188,27 @@ public class JaPSServer implements Runnable {
                         socketChannel.configureBlocking(false);
                         socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
 
-                        LOGGER.log(Level.FINE, "[{0}] New connection", socketChannel.getRemoteAddress());
 
                         // Create new connection object
                         Connection connection = new Connection(this, socketChannel);
 
-                        // Register OP_READ and attach the connection object to it
-                        socketChannel.register(selector, SelectionKey.OP_READ, connection);
-                    }
+                        SelectorThread nextSelector = nextSelector();
+                        Selector sel = nextSelector.selector();
 
-                    if(key.isReadable()) {
-                        Connection connection = ((Connection) key.attachment());
-                        if(connection != null) {
-                            connection.read();
+                        LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[] {socketChannel.getRemoteAddress(), nextSelector.id()});
+
+                        // Lock the selectors
+                        selectorLock.lock();
+
+                        // Stop the new selector from hanging in select() call
+                        sel.wakeup();
+
+                        try {
+                            // Register OP_READ and attach the connection object to it
+                            socketChannel.register(sel, SelectionKey.OP_READ, connection);
+                        } finally {
+                            // Unlock the lock
+                            selectorLock.unlock();
                         }
                     }
                 }

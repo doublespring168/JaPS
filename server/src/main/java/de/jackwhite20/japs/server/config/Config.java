@@ -32,12 +32,15 @@ public class Config {
 
     private boolean debug = true;
 
-    public Config(String host, int port, int backlog, boolean debug) {
+    private int workerThreads = 4;
+
+    public Config(String host, int port, int backlog, boolean debug, int workerThreads) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
         this.debug = debug;
+        this.workerThreads = workerThreads;
     }
 
     public String host() {
@@ -60,6 +63,11 @@ public class Config {
         return debug;
     }
 
+    public int workerThreads() {
+
+        return workerThreads;
+    }
+
     @Override
     public String toString() {
 
@@ -68,6 +76,7 @@ public class Config {
                 ", port=" + port +
                 ", backlog=" + backlog +
                 ", debug=" + debug +
+                ", workerThreads=" + workerThreads +
                 '}';
     }
 }

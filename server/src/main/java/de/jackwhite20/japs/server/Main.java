@@ -22,6 +22,7 @@ package de.jackwhite20.japs.server;
 import com.google.gson.Gson;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.logging.ConsoleFormatter;
+import org.apache.commons.cli.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,26 +41,28 @@ public class Main {
 
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         setUpLogging();
 
-        LOGGER.info("Starting JaPS server");
-
         Config config = null;
 
-        if(args.length > 0) {
-            if(args.length == 2) {
-                config = new Config(args[0], Integer.parseInt(args[1]), 50, true);
-                LOGGER.info("Using default backlog of 50");
-            } else if(args.length == 3) {
-                LOGGER.log(Level.INFO, "Using backlog of {0}", args[2]);
-                config = new Config(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]), true);
-            } else if(args.length == 4) {
-                LOGGER.log(Level.INFO, "Using backlog of {0}", args[2]);
-                config = new Config(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]), !args[3].equalsIgnoreCase("info"));
+        if (args.length > 0) {
+            Options options = new Options();
+            options.addOption("h", true, "Address to bind to");
+            options.addOption("p", true, "Port to bind to");
+            options.addOption("b", true, "The backlog");
+            options.addOption("t", true, "Worker thread count");
+            options.addOption("d", false, "If debug is enabled or not");
+
+            CommandLineParser commandLineParser = new BasicParser();
+            CommandLine commandLine = commandLineParser.parse(options, args);
+
+            if (commandLine.hasOption("h") && commandLine.hasOption("p") && commandLine.hasOption("b") && commandLine.hasOption("t")) {
+                config = new Config(commandLine.getOptionValue("h"), Integer.parseInt(commandLine.getOptionValue("p")), Integer.parseInt(commandLine.getOptionValue("b")), commandLine.hasOption("d"), Integer.parseInt(commandLine.getOptionValue("t")));
             } else {
-                System.out.println("Usage: java -jar japs-server.jar <Host> <Port> [Backlog] [debug|info]");
+                System.out.println("Usage: java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-d]");
+                System.out.println("Example (with debugging enabled): java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d");
                 System.exit(-1);
             }
         } else {
@@ -86,6 +89,8 @@ public class Main {
             LOGGER.log(Level.SEVERE, "Please check the program parameters or the 'config.json' file!");
         } else {
             LOGGER.log(Level.INFO, "Using Config: {0}", config);
+
+            LOGGER.info("Starting JaPS server");
 
             new JaPSServer(config);
         }
