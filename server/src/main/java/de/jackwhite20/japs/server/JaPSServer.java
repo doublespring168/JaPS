@@ -34,7 +34,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,8 +64,6 @@ public class JaPSServer implements Runnable {
     private RoundRobinList<SelectorThread> selectorRoundRobin;
 
     private ExecutorService workerPool;
-
-    private AtomicInteger selectorCounter = new AtomicInteger(0);
 
     private int workerThreads;
 
