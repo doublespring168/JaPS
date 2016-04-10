@@ -88,7 +88,7 @@ public class JaPSServer implements Runnable {
                 while (clusterServerIterator.hasNext()) {
                     Config.ClusterServer clusterServer = clusterServerIterator.next();
 
-                    // Remove the own endpoint if this instance
+                    // Remove the own endpoint of this instance (does not work if it is bound to 0.0.0.0)
                     if (clusterServer.port() == port && clusterServer.host().equals(host)) {
                         clusterServerIterator.remove();
                         continue;
