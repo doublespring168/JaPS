@@ -3,5 +3,11 @@
   "port": 1337,
   "backlog": 50,
   "debug": true,
-  "workerThreads": 4
+  "workerThreads": 4,
+  "cluster": [
+    {
+      "host": "localhost",
+      "port": 1337
+    }
+  ]
 }

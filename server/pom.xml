@@ -16,6 +16,13 @@
             <artifactId>commons-cli</artifactId>
             <version>20040117.000000</version>
         </dependency>
+
+        <!-- JaPS Client -->
+        <dependency>
+            <groupId>de.jackwhite20</groupId>
+            <artifactId>japs-client</artifactId>
+            <version>0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -24,6 +31,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
                 <configuration>
                     <archive>
                         <manifest>

@@ -19,12 +19,17 @@
 
 package de.jackwhite20.japs.server;
 
+import de.jackwhite20.japs.client.pub.Publisher;
+import de.jackwhite20.japs.client.pub.PublisherFactory;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.util.RoundRobinList;
 
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -65,7 +70,9 @@ public class JaPSServer implements Runnable {
 
     private int workerThreads;
 
-    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads) {
+    private List<ClusterPublisher> clusterPublisher = new ArrayList<>();
+
+    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<Config.ClusterServer> cluster) {
 
         this.host = host;
         this.port = port;
@@ -75,11 +82,51 @@ public class JaPSServer implements Runnable {
         Logger.getLogger("de.jackwhite20").setLevel((debug) ? Level.FINE : Level.INFO);
 
         start();
+
+        workerPool.execute(() -> {
+            while (cluster.size() > 0) {
+                LOGGER.info("Trying to connecting to all cluster servers");
+
+                Iterator<Config.ClusterServer> clusterServerIterator = cluster.iterator();
+                while (clusterServerIterator.hasNext()) {
+                    Config.ClusterServer clusterServer = clusterServerIterator.next();
+
+                    // Remove the own endpoint if this instance
+                    if (clusterServer.port() == port && clusterServer.host().equals(host)) {
+                        clusterServerIterator.remove();
+                        continue;
+                    }
+
+                    try {
+                        Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
+                        clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
+
+                        clusterServerIterator.remove();
+
+                        LOGGER.log(Level.INFO, "Connected to cluster server {0}:{1}", new Object[] {clusterServer.host(), String.valueOf(clusterServer.port())});
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Could not connect to cluster server {0}:{1}", new Object[] {clusterServer.host(), String.valueOf(clusterServer.port())});
+                    }
+                }
+
+                if(cluster.size() == 0) {
+                    break;
+                }
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            LOGGER.info("Cluster servers are connected successfully!");
+        });
     }
 
     public JaPSServer(Config config) {
 
-        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads());
+        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster());
     }
 
     private void start() {
@@ -91,7 +138,7 @@ public class JaPSServer implements Runnable {
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            workerPool = Executors.newFixedThreadPool(workerThreads + 1);
+            workerPool = Executors.newFixedThreadPool(workerThreads + 2);
 
             workerPool.execute(this);
 
@@ -141,10 +188,17 @@ public class JaPSServer implements Runnable {
         }
     }
 
-    public void broadcast(String channel, String data) {
+    public void broadcast(Connection con, String channel, String data) {
 
         if(channelSessions.containsKey(channel)) {
-            channelSessions.get(channel).forEach(session -> session.send(data));
+            for (Connection connection : channelSessions.get(channel)) {
+                connection.send(data);
+            }
+        }
+
+        // Cluster test
+        if(clusterPublisher.size() > 0) {
+            clusterPublisher.stream().filter(cl -> con.port() != cl.port && !con.host().equals(cl.host)).forEach(cl -> cl.publisher.publish(channel, data));
         }
     }
 
@@ -211,6 +265,22 @@ public class JaPSServer implements Runnable {
                 e.printStackTrace();
                 break;
             }
+        }
+    }
+
+    public static class ClusterPublisher {
+
+        private Publisher publisher;
+
+        private String host;
+
+        private int port;
+
+        public ClusterPublisher(Publisher publisher, String host, int port) {
+
+            this.publisher = publisher;
+            this.host = host;
+            this.port = port;
         }
     }
 }

@@ -22,6 +22,7 @@ package de.jackwhite20.japs.server;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -55,12 +56,18 @@ public class Connection {
 
     private SocketAddress remoteAddress;
 
+    private String host;
+
+    private int port;
+
     public Connection(JaPSServer server, SocketChannel socketChannel) {
 
         this.server = server;
         this.socketChannel = socketChannel;
         try {
             this.remoteAddress = socketChannel.getRemoteAddress();
+            host = ((InetSocketAddress) remoteAddress).getHostName();
+            port = ((InetSocketAddress) remoteAddress).getPort();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -149,7 +156,7 @@ public class Connection {
                     switch (op) {
                         case 2:
                             // Broadcast it to all subscriber
-                            server.broadcast(jsonObject.getString("ch"), jsonObject.toString());
+                            server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
                             break;
                         case 0:
                             String channelToRegister = jsonObject.getString("ch");
@@ -183,5 +190,15 @@ public class Connection {
     public SocketAddress remoteAddress() {
 
         return remoteAddress;
+    }
+
+    public String host() {
+
+        return host;
+    }
+
+    public int port() {
+
+        return port;
     }
 }

@@ -19,6 +19,8 @@
 
 package de.jackwhite20.japs.server.config;
 
+import java.util.List;
+
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
@@ -34,13 +36,16 @@ public class Config {
 
     private int workerThreads = 4;
 
-    public Config(String host, int port, int backlog, boolean debug, int workerThreads) {
+    private List<ClusterServer> cluster;
+
+    public Config(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
         this.debug = debug;
         this.workerThreads = workerThreads;
+        this.cluster = cluster;
     }
 
     public String host() {
@@ -68,6 +73,11 @@ public class Config {
         return workerThreads;
     }
 
+    public List<ClusterServer> cluster() {
+
+        return cluster;
+    }
+
     @Override
     public String toString() {
 
@@ -77,6 +87,39 @@ public class Config {
                 ", backlog=" + backlog +
                 ", debug=" + debug +
                 ", workerThreads=" + workerThreads +
+                ", cluster=" + cluster +
                 '}';
+    }
+
+    public static class ClusterServer {
+
+        private String host;
+
+        private int port;
+
+        public ClusterServer(String host, int port) {
+
+            this.host = host;
+            this.port = port;
+        }
+
+        public String host() {
+
+            return host;
+        }
+
+        public int port() {
+
+            return port;
+        }
+
+        @Override
+        public String toString() {
+
+            return "ClusterServer{" +
+                    "host='" + host + '\'' +
+                    ", port=" + port +
+                    '}';
+        }
     }
 }
