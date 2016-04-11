@@ -80,45 +80,48 @@ public class JaPSServer implements Runnable {
 
         start();
 
-        workerPool.execute(() -> {
-            while (cluster.size() > 0) {
-                LOGGER.info("Trying to connecting to all cluster servers");
+        // Check if there are cluster servers to avoid unnecessary logic execution
+        if(cluster.size() > 0 ) {
+            new Thread(() -> {
+                while (cluster.size() > 0) {
+                    LOGGER.info("Trying to connecting to all cluster servers");
 
-                Iterator<Config.ClusterServer> clusterServerIterator = cluster.iterator();
-                while (clusterServerIterator.hasNext()) {
-                    Config.ClusterServer clusterServer = clusterServerIterator.next();
+                    Iterator<Config.ClusterServer> clusterServerIterator = cluster.iterator();
+                    while (clusterServerIterator.hasNext()) {
+                        Config.ClusterServer clusterServer = clusterServerIterator.next();
 
-                    // Remove the own endpoint of this instance (does not work if it is bound to 0.0.0.0)
-                    if (clusterServer.port() == port && clusterServer.host().equals(host)) {
-                        clusterServerIterator.remove();
-                        continue;
+                        // Remove the own endpoint of this instance (does not work if it is bound to 0.0.0.0)
+                        if (clusterServer.port() == port && clusterServer.host().equals(host)) {
+                            clusterServerIterator.remove();
+                            continue;
+                        }
+
+                        try {
+                            Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
+                            clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
+
+                            clusterServerIterator.remove();
+
+                            LOGGER.log(Level.INFO, "Connected to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
+                        } catch (Exception e) {
+                            LOGGER.log(Level.SEVERE, "Could not connect to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
+                        }
+                    }
+
+                    if (cluster.size() == 0) {
+                        break;
                     }
 
                     try {
-                        Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
-                        clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
-
-                        clusterServerIterator.remove();
-
-                        LOGGER.log(Level.INFO, "Connected to cluster server {0}:{1}", new Object[] {clusterServer.host(), String.valueOf(clusterServer.port())});
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Could not connect to cluster server {0}:{1}", new Object[] {clusterServer.host(), String.valueOf(clusterServer.port())});
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
 
-                if(cluster.size() == 0) {
-                    break;
-                }
-
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            LOGGER.info("Cluster servers are connected successfully!");
-        });
+                LOGGER.info("Cluster servers are connected successfully!");
+            }).start();
+        }
     }
 
     public JaPSServer(Config config) {
@@ -135,7 +138,7 @@ public class JaPSServer implements Runnable {
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            workerPool = Executors.newFixedThreadPool(workerThreads + 2);
+            workerPool = Executors.newFixedThreadPool(workerThreads + 1);
 
             workerPool.execute(this);
 
