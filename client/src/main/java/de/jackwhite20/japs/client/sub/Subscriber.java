@@ -60,4 +60,11 @@ public interface Subscriber {
      * @return True if connected, otherwise false.
      */
     boolean connected();
+
+    /**
+     * Returns the name of the subscriber.
+     *
+     * @return The name.
+     */
+    String name();
 }

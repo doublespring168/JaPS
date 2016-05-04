@@ -40,12 +40,30 @@ public interface Publisher {
     void publish(String channel, JSONObject jsonObject);
 
     /**
-     * Publishes the given JSONObject to the given channel.
+     * Publishes the given JSONObject to the given channel and subscriber.
+     *
+     * @param channel The channel.
+     * @param jsonObject The json as JSONObject.
+     * @param subscriberName The name of the subscriber to publish to.
+     */
+    void publish(String channel, JSONObject jsonObject, String subscriberName);
+
+    /**
+     * Publishes the given json to the given channel.
      *
      * @param channel The channel.
      * @param json The raw json string.
      */
     void publish(String channel, String json);
+
+    /**
+     * Publishes the given json to the given channel and subscriber.
+     *
+     * @param channel The channel.
+     * @param json The raw json string.
+     * @param subscriberName The name of the subscriber to publish to.
+     */
+    void publish(String channel, String json, String subscriberName);
 
     /**
      * Publishes the given object as json string to the given channel.
@@ -55,6 +73,16 @@ public interface Publisher {
      * @param object The object which can be serialized with gson.
      */
     void publish(String channel, Object object);
+
+    /**
+     * Publishes the given object as json string to the given channel.
+     * The object will be serialized with gson to a json string.
+     *
+     * @param channel The channel.
+     * @param object The object which can be serialized with gson.
+     * @param subscriberName The name of the subscriber to publish to.
+     */
+    void publish(String channel, Object object, String subscriberName);
 
     /**
      * Returns if the publisher is connected.

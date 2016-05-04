@@ -24,7 +24,11 @@ import de.jackwhite20.japs.client.sub.impl.SubscriberImpl;
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class SubscriberFactory {
+public final class SubscriberFactory {
+
+    private SubscriberFactory() {
+        // no instance
+    }
 
     /**
      * Creates a new subscriber instance which connects to the given host and port.
@@ -36,5 +40,18 @@ public class SubscriberFactory {
     public static Subscriber create(String host, int port) {
 
         return new SubscriberImpl(host, port);
+    }
+
+    /**
+     * Creates a new subscriber instance which connects to the given host and port.
+     *
+     * @param host The host to connect to.
+     * @param port The port to connect to.
+     * @param subscriberName The subscriber name.
+     * @return A new instance of a subscriber implementation.
+     */
+    public static Subscriber create(String host, int port, String subscriberName) {
+
+        return new SubscriberImpl(host, port, subscriberName);
     }
 }

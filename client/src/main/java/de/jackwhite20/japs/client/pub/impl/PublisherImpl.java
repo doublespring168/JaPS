@@ -90,6 +90,12 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, JSONObject jsonObject) {
 
+        publish(channel, jsonObject, null);
+    }
+
+    @Override
+    public void publish(String channel, JSONObject jsonObject, String subscriberName) {
+
         if(channel == null || channel.isEmpty()) {
             throw new IllegalArgumentException("channel cannot be null or empty");
         }
@@ -98,9 +104,13 @@ public class PublisherImpl implements Publisher {
             throw new IllegalArgumentException("jsonObject cannot be null or empty");
         }
 
-        // Set the op code and channel
+        // Set the op code, channel
         jsonObject.put("op", 2);
         jsonObject.put("ch", channel);
+        // Set the subscriber name if it is not null
+        if(subscriberName != null) {
+            jsonObject.put("su", subscriberName);
+        }
 
         try {
             // Send the JSONObject as JSON string with a line break at the end
@@ -114,27 +124,39 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, String json) {
 
+        publish(channel, json, null);
+    }
+
+    @Override
+    public void publish(String channel, String json, String subscriberName) {
+
         if(json == null || json.isEmpty()) {
             throw new IllegalArgumentException("json cannot be null or empty");
         }
 
         try {
             // Publish it as JSONObject that we can add the op code and channel
-            publish(channel, new JSONObject(json));
+            publish(channel, new JSONObject(json), subscriberName);
         } catch (JSONException e) {
-            throw new IllegalArgumentException("invalid json: " + json);
+            e.printStackTrace();
         }
     }
 
     @Override
     public void publish(String channel, Object object) {
 
+        publish(channel, object, null);
+    }
+
+    @Override
+    public void publish(String channel, Object object, String subscriberName) {
+
         if(object == null) {
             throw new IllegalArgumentException("object cannot be null");
         }
 
         // Publish the serialized object as json string
-        publish(channel, gson.toJson(object));
+        publish(channel, gson.toJson(object), subscriberName);
     }
 
     @Override

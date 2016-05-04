@@ -60,6 +60,8 @@ public class Connection {
 
     private int port;
 
+    private String name;
+
     public Connection(JaPSServer server, SocketChannel socketChannel) {
 
         this.server = server;
@@ -155,8 +157,13 @@ public class Connection {
 
                     switch (op) {
                         case 2:
-                            // Broadcast it to all subscriber
-                            server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
+                            if(!jsonObject.has("su")) {
+                                // Broadcast it to all subscriber
+                                server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
+                            } else {
+                                // Broadcast to specific subscriber
+                                server.broadcastTo(this, jsonObject.getString("ch"), jsonObject.toString(), jsonObject.getString("su"));
+                            }
                             break;
                         case 0:
                             String channelToRegister = jsonObject.getString("ch");
@@ -170,8 +177,13 @@ public class Connection {
                             server.unsubscribeChannel(channelToRemove, this);
                             channels.remove(channelToRemove);
                             break;
+                        case 3:
+                            name = jsonObject.getString("su");
+
+                            LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[] {remoteAddress.toString(), name});
+                            break;
                         default:
-                            System.err.println("Unknown OP CODE: " + op);
+                            LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[] {remoteAddress.toString(), op});
                     }
                 }
             }
@@ -200,5 +212,10 @@ public class Connection {
     public int port() {
 
         return port;
+    }
+
+    public String name() {
+
+        return name;
     }
 }

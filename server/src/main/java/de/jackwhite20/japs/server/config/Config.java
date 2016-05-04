@@ -34,7 +34,7 @@ public class Config {
 
     private boolean debug = true;
 
-    private int workerThreads = 4;
+    private int workerThreads = Runtime.getRuntime().availableProcessors();
 
     private List<ClusterServer> cluster;
 

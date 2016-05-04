@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -196,10 +197,36 @@ public class JaPSServer implements Runnable {
             }
         }
 
-        // Cluster test
+        clusterBroadcast(con, channel, data);
+    }
+
+    public void broadcastTo(Connection con, String channel, String data, String subscriberName) {
+
+        if(channelSessions.containsKey(channel)) {
+            for (Connection filteredConnection : channelSessions.get(channel).stream().filter(connection -> connection.name().equals(subscriberName)).collect(Collectors.toList())) {
+                filteredConnection.send(data);
+            }
+        }
+
+        clusterBroadcast(con, channel, data);
+    }
+
+    private void clusterBroadcast(Connection con, String channel, String data) {
+
         if(clusterPublisher.size() > 0) {
+            // Publish it to all clusters but exclude this server
             clusterPublisher.stream().filter(cl -> con.port() != cl.port && !con.host().equals(cl.host)).forEach(cl -> cl.publisher.publish(channel, data));
         }
+    }
+
+    private void acquireLock() {
+
+        selectorLock.lock();
+    }
+
+    private void releaseLock() {
+
+        selectorLock.unlock();
     }
 
     @Override
@@ -243,7 +270,7 @@ public class JaPSServer implements Runnable {
                         Selector sel = nextSelector.selector();
 
                         // Lock the selectors
-                        selectorLock.lock();
+                        acquireLock();
 
                         // Stop the new selector from hanging in select() call
                         sel.wakeup();
@@ -251,24 +278,26 @@ public class JaPSServer implements Runnable {
                         try {
                             // Register OP_READ and attach the connection object to it
                             socketChannel.register(sel, SelectionKey.OP_READ, connection);
+
+                            LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[] {socketChannel.getRemoteAddress(), nextSelector.id()});
                         } finally {
                             // Unlock the lock
-                            selectorLock.unlock();
+                            releaseLock();
                         }
 
-                        LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[] {socketChannel.getRemoteAddress(), nextSelector.id()});
                     }
                 }
 
                 keys.clear();
             } catch (Exception e) {
+                releaseLock();
                 e.printStackTrace();
                 break;
             }
         }
     }
 
-    public static class ClusterPublisher {
+    private static class ClusterPublisher {
 
         private Publisher publisher;
 

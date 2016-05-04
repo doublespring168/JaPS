@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import de.jackwhite20.japs.client.sub.Subscriber;
 import de.jackwhite20.japs.client.sub.impl.exception.SubscriberConnectException;
 import de.jackwhite20.japs.client.sub.impl.handler.*;
+import de.jackwhite20.japs.client.util.NameGeneratorUtil;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -36,13 +37,24 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
 public class SubscriberImpl implements Subscriber, Runnable {
 
+    private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
+
     private static final int INITIAL_STRING_BUILDER_SIZE = 256;
+
+    private static final int BUFFER_SIZE = 4096;
+
+    private static final int OP_SUBSCRIBE = 0;
+
+    private static final int OP_UNSUBSCRIBE = 1;
+
+    private static final int OP_NAME = 3;
 
     private boolean connected;
 
@@ -50,15 +62,17 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private int port;
 
+    private String name;
+
     private SocketChannel socketChannel;
 
     private Selector selector;
 
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
+    private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
-    private static HashMap<String, HandlerInfo> handlers = new HashMap<>();
+    private static Map<String, HandlerInfo> handlers = new HashMap<>();
 
-    private static HashMap<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
+    private static Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
 
     private CountDownLatch connectLatch = new CountDownLatch(1);
 
@@ -68,8 +82,14 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     public SubscriberImpl(String host, int port) {
 
+        this(host, port, NameGeneratorUtil.generateName("subscriber", ID_COUNTER.getAndIncrement()));
+    }
+
+    public SubscriberImpl(String host, int port, String name) {
+
         this.host = host;
         this.port = port;
+        this.name = name;
 
         connect();
     }
@@ -90,7 +110,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             new Thread(this).start();
 
             connectLatch.await();
-        } catch (Exception e) {
+        } catch (Exception ignore) {
             throw new SubscriberConnectException("cant connect to " + host + ":" + port);
         }
     }
@@ -141,7 +161,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             handlers.put(channel, new HandlerInfo(handler.newInstance()));
 
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", 0);
+            jsonObject.put("op", OP_SUBSCRIBE);
             jsonObject.put("ch", channel);
 
             write(jsonObject.toString());
@@ -178,7 +198,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));
 
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", 0);
+            jsonObject.put("op", OP_SUBSCRIBE);
             jsonObject.put("ch", channel);
 
             write(jsonObject.toString());
@@ -193,7 +213,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
         handlers.remove(channel);
 
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("op", 1);
+        jsonObject.put("op", OP_UNSUBSCRIBE);
         jsonObject.put("ch", channel);
 
         write(jsonObject.toString());
@@ -203,6 +223,12 @@ public class SubscriberImpl implements Subscriber, Runnable {
     public boolean connected() {
 
         return connected;
+    }
+
+    @Override
+    public String name() {
+
+        return name;
     }
 
     @SuppressWarnings("unchecked")
@@ -225,13 +251,17 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
                     keyIterator.remove();
 
-                    if (!key.isValid())
+                    if (!key.isValid()) {
                         continue;
+                    }
 
                     if(key.isConnectable()) {
                         socketChannel.finishConnect();
 
                         socketChannel.register(selector, SelectionKey.OP_READ);
+
+                        // Register with our name
+                        write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
 
                         countDown();
                     }
@@ -296,9 +326,9 @@ public class SubscriberImpl implements Subscriber, Runnable {
                         byteBuffer.compact();
                     }
                 }
-            } catch (ConnectException ce) {
+            } catch (ConnectException ignore) {
                 throw new SubscriberConnectException("can't connect to " + host + ":" + port);
-            } catch (Exception e) {
+            } catch (Exception ignore) {
                 break;
             }
         }

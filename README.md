@@ -1,11 +1,27 @@
 # JaPS
 JaPS is a robust and lightweight Java Pub/Sub library which uses JSON.
 
-I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well.
+I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well,
+therefore I have decided to publish it here on GitHub.
 
-The publishing and subscribing of JSON messages are handled with channels. 
-JaPS allows you to register handlers in which methods get invoked based on a key and value match. 
-It is also possible that one handler is responsible for one channel and it's JSON messages.
+# Features
+
+- channels
+- channel handler (json object and custom object)
+- key-value based handler method invocation
+- subscriber may have custom names
+- publish to specific subscriber
+- custom object serialization with [gson] (https://github.com/google/gson)
+- clean API
+- low cpu and memory consumption
+- lightweight
+- scalable
+- simple JSON
+- full multi-core utilization and configurable number of threads
+- combine multiple JaPS server to a cluster
+- simple but powerful NIO implementation
+- thousands of publisher and subscriber concurrently
+- hundreds of new connections per second
 
 # Installation
 
@@ -43,6 +59,8 @@ backendJson.put("role", "update");
 backendJson.put("ping", 5);
 publisher.publish("backend", backendJson);
 
+// Publish to specific subscriber
+publisher.publish("test", fooBar, "some-subscriber");
 ```
 
 _Subscriber:_
@@ -51,6 +69,12 @@ Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
 subscriber.subscribe("test", TestChannelHandler.class);
 subscriber.subscribe(BackendMultiChannelHandler.class);
 subscriber.subscribe("gson", GsonChannelHandler.class);
+```
+
+_Subscriber with defined name:_
+```java
+Subscriber subscriber = SubscriberFactory.create("localhost", 1337, "some-subscriber");
+subscriber.subscribe("test", TestChannelHandler.class);
 ```
 
 _TestChannelHandler:_

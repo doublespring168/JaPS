@@ -24,7 +24,11 @@ import de.jackwhite20.japs.client.pub.impl.PublisherImpl;
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class PublisherFactory {
+public final class PublisherFactory {
+
+    private PublisherFactory() {
+        // no instance
+    }
 
     /**
      * Creates a new publisher instance which connects to the given host and port.
