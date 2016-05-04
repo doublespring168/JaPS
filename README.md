@@ -17,6 +17,7 @@ therefore I have decided to publish it here on GitHub.
 - lightweight
 - scalable
 - simple JSON
+- easy to implement in other languages (PHP publisher example at to bottom)
 - full multi-core utilization and configurable number of threads
 - combine multiple JaPS server to a cluster
 - simple but powerful NIO implementation
@@ -101,6 +102,13 @@ public class BackendMultiChannelHandler {
 		// Keep in mind that the key (here "role") will be removed before invocation
         System.out.println("BMCH[role=update]: ping=" + jsonObject.getInt("ping"));
     }
+    
+    @Key("role")
+    @Value("delete")
+    public void onBackendRoleDelete(FooBar fooBar) {
+
+        System.out.println("FooBar[role=delete]: " + fooBar.toString());
+    }
 }
 ```
 
@@ -135,6 +143,102 @@ public class FooBar {
                 '}';
     }
 }
+```
+
+# PHP example
+
+_JaPSPublisher:_
+```php
+<?php
+
+class JaPSPublisher
+{
+
+    /**
+     * Host address.
+     *
+     * @var string The host address.
+     */
+    private $host;
+
+    /**
+     * Host port.
+     *
+     * @var int The host port.
+     */
+    private $port;
+
+    /**
+     * Socket instance.
+     *
+     * @var resource The socket instance.
+     */
+    private $socket;
+
+    /**
+     * JaPSPublisher constructor.
+     */
+    /**
+     * JaPSPublisher constructor.
+     *
+     * @param string $host The host address to connect to.
+     * @param int $port The host port to connect to.
+     */
+    public function __construct($host = "localhost", $port = 1337)
+    {
+        $this->host = $host;
+        $this->port = $port;
+
+        $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+
+        $this->connect();
+    }
+
+    /**
+     * Connects the internal socket.
+     */
+    private function connect() {
+
+        socket_connect($this->socket, $this->host, $this->port);
+    }
+
+    /**
+     * Publish a message to a given channel.
+     *
+     * @param ($channel) The channel.
+     * @param ($array) The message as an array which will be json encoded.
+     */
+    public function publish($channel, $array) {
+
+        $array['op'] = 2;
+        $array['ch'] = $channel;
+
+        $data = json_encode($array) . "\n";
+        socket_write($this->socket, $data, strlen($data));
+    }
+
+    /**
+     * Closes the publisher.
+     */
+    public function close() {
+
+        socket_close($this->socket);
+    }
+}
+```
+
+_Example usage:_
+```php
+<?php
+
+include("JaPSPublisher.php");
+
+$client = new JaPSPublisher("192.168.2.102", 6000);
+
+$client->publish("test", array("foo" => "bar1"));
+$client->publish("test", array("foo" => "bar2"));
+
+$client->close();
 ```
 
 ### License

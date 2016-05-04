@@ -181,10 +181,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
             List<MultiHandlerInfo.Entry> entries = new ArrayList<>();
 
             Object object = handler.newInstance();
-            for (Method method : object.getClass().getMethods()) {
-                if(method.getParameterCount() == 1 && method.getParameterTypes()[0].getSimpleName().equals("JSONObject")) {
+            for (Method method : object.getClass().getDeclaredMethods()) {
+                if(method.getParameterCount() == 1) {
                     if (method.isAnnotationPresent(Key.class) && method.isAnnotationPresent(Value.class)) {
-                        entries.add(new MultiHandlerInfo.Entry(method.getAnnotation(Key.class), method.getAnnotation(Value.class), method));
+                        entries.add(new MultiHandlerInfo.Entry(method.getAnnotation(Key.class), method.getAnnotation(Value.class), method.getParameterTypes()[0], (method.getParameterTypes()[0].getSimpleName().equals("JSONObject")) ? ClassType.JSON : ClassType.GSON, method));
                     }
                 }
             }
@@ -313,8 +313,13 @@ public class SubscriberImpl implements Subscriber, Runnable {
                                                     // Remove matched key value pair
                                                     jsonObject.remove(entry.key().value());
 
-                                                    // Invoke the matching method
-                                                    entry.method().invoke(multiHandlerInfo.object(), jsonObject);
+                                                    if(entry.classType() == ClassType.JSON) {
+                                                        // Invoke the matching method
+                                                        entry.method().invoke(multiHandlerInfo.object(), jsonObject);
+                                                    } else {
+                                                        // Deserialize with gson
+                                                        entry.method().invoke(multiHandlerInfo.object(), gson.fromJson(jsonObject.toString(), entry.paramClass()));
+                                                    }
                                                 }
                                             }
                                         }

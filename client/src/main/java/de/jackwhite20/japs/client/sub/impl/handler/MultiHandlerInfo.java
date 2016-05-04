@@ -54,12 +54,18 @@ public class MultiHandlerInfo {
 
         private Value value;
 
+        private Class<?> paramClass;
+
+        private ClassType classType;
+
         private Method method;
 
-        public Entry(Key key, Value value, Method method) {
+        public Entry(Key key, Value value, Class<?> paramClass, ClassType classType, Method method) {
 
             this.key = key;
             this.value = value;
+            this.paramClass = paramClass;
+            this.classType = classType;
             this.method = method;
         }
 
@@ -71,6 +77,16 @@ public class MultiHandlerInfo {
         public Value value() {
 
             return value;
+        }
+
+        public Class<?> paramClass() {
+
+            return paramClass;
+        }
+
+        public ClassType classType() {
+
+            return classType;
         }
 
         public Method method() {

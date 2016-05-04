@@ -35,4 +35,11 @@ public class BackendMultiChannelHandler {
         // Keep in mind that the key (here "role") will be removed before invocation
         System.out.println("BMCH[role=update]: ping=" + jsonObject.getInt("ping"));
     }
+
+    @Key("role")
+    @Value("delete")
+    public void onBackendRoleDelete(FooBar fooBar) {
+
+        System.out.println("FooBar[role=delete]: " + fooBar.toString());
+    }
 }
