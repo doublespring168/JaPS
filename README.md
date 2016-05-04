@@ -20,6 +20,7 @@ therefore I have decided to publish it here on GitHub.
 - easy to implement in other languages (PHP publisher example at to bottom)
 - full multi-core utilization and configurable number of threads
 - combine multiple JaPS server to a cluster
+- cluster failover with auto reconnect and sync
 - simple but powerful NIO implementation
 - thousands of publisher and subscriber concurrently
 - hundreds of new connections per second

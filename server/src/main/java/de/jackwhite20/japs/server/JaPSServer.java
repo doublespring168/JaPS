@@ -99,11 +99,13 @@ public class JaPSServer implements Runnable {
 
                         try {
                             Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
-                            clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
+                            if(publisher.connected()) {
+                                clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
 
-                            clusterServerIterator.remove();
+                                clusterServerIterator.remove();
 
-                            LOGGER.log(Level.INFO, "Connected to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
+                                LOGGER.log(Level.INFO, "Connected to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
+                            }
                         } catch (Exception e) {
                             LOGGER.log(Level.SEVERE, "Could not connect to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
                         }
@@ -215,7 +217,7 @@ public class JaPSServer implements Runnable {
 
         if(clusterPublisher.size() > 0) {
             // Publish it to all clusters but exclude this server
-            clusterPublisher.stream().filter(cl -> con.port() != cl.port && !con.host().equals(cl.host)).forEach(cl -> cl.publisher.publish(channel, data));
+            clusterPublisher.stream().filter(cl -> con.port() != cl.port && !con.host().equals(cl.host) && cl.connected()).forEach(cl -> cl.publisher.publish(channel, data));
         }
     }
 
@@ -284,7 +286,6 @@ public class JaPSServer implements Runnable {
                             // Unlock the lock
                             releaseLock();
                         }
-
                     }
                 }
 
@@ -310,6 +311,11 @@ public class JaPSServer implements Runnable {
             this.publisher = publisher;
             this.host = host;
             this.port = port;
+        }
+
+        public boolean connected() {
+
+            return publisher.connected();
         }
     }
 }

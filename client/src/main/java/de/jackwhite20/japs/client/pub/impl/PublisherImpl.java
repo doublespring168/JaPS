@@ -21,7 +21,7 @@ package de.jackwhite20.japs.client.pub.impl;
 
 import com.google.gson.Gson;
 import de.jackwhite20.japs.client.pub.Publisher;
-import de.jackwhite20.japs.client.pub.impl.exception.PublisherConnectException;
+import de.jackwhite20.japs.client.util.ClusterServer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,32 +30,48 @@ import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
 public class PublisherImpl implements Publisher {
 
+    private static final long KEEP_ALIVE_TIME = 1000;
+
     private boolean connected;
 
-    private String host;
+    private List<ClusterServer> clusterServers;
 
-    private int port;
+    private int clusterServerIndex = 0;
 
     private SocketChannel socketChannel;
+
+    private long reconnectPause = 0;
 
     private Gson gson = new Gson();
 
     public PublisherImpl(String host, int port) {
 
-        this.host = host;
-        this.port = port;
-
-        // Connect
-        connect();
+        this(Collections.singletonList(new ClusterServer(host, port)));
     }
 
-    private void connect() {
+    public PublisherImpl(List<ClusterServer> clusterServers) {
+
+        this.clusterServers = clusterServers;
+
+        // Get the first cluster server info
+        String firstHost = clusterServers.get(clusterServerIndex).host();
+        int firstPort = clusterServers.get(clusterServerIndex).port();
+
+        // Try to connect
+        connect(firstHost, firstPort);
+
+        new Thread(new PingTask()).start();
+    }
+
+    private void connect(String host, int port) {
 
         try {
             // Open a new socket channel and connect to the host and port
@@ -66,24 +82,60 @@ public class PublisherImpl implements Publisher {
 
             // We are connected successfully
             connected = true;
+            reconnectPause = 0;
         } catch (IOException e) {
-            throw new PublisherConnectException("error while connecting to " + host + ":" + port);
+            closeSocket();
+            reconnect();
+        }
+    }
+
+    private void reconnect() {
+
+        if(reconnectPause > 0) {
+            try {
+                Thread.sleep(reconnectPause);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        clusterServerIndex++;
+        if(reconnectPause < 1000) {
+            reconnectPause += 100;
+        }
+
+        if(clusterServers.size() == clusterServerIndex) {
+            clusterServerIndex = 0;
+        }
+
+        // Reconnect to the new cluster server
+        connect(clusterServers.get(clusterServerIndex).host(), clusterServers.get(clusterServerIndex).port());
+    }
+
+    private void closeSocket() {
+
+        // If not null disconnect the socket channel
+        if (socketChannel != null) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
     public void disconnect() {
 
-        // We are not connected anymore
-        connected = false;
+        if(connected) {
+            // We are not connected anymore
+            connected = false;
 
-        // If not null disconnect the socket channel
-        if(socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // Close the socket channel
+            closeSocket();
+
+            // Try to reconnect
+            reconnect();
         }
     }
 
@@ -117,7 +169,8 @@ public class PublisherImpl implements Publisher {
             socketChannel.write(ByteBuffer.wrap((jsonObject.toString() + "\n").getBytes()));
         } catch (IOException e) {
             disconnect();
-            e.printStackTrace();
+            // TODO: 04.05.2016 ?
+            //e.printStackTrace();
         }
     }
 
@@ -163,5 +216,23 @@ public class PublisherImpl implements Publisher {
     public boolean connected() {
 
         return connected;
+    }
+
+    private class PingTask implements Runnable {
+
+        @Override
+        public void run() {
+
+            while (connected) {
+                // Try to send a keep alive to detect connection lost
+                publish("keep-alive", new JSONObject().put("time", System.currentTimeMillis()));
+
+                try {
+                    Thread.sleep(KEEP_ALIVE_TIME);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

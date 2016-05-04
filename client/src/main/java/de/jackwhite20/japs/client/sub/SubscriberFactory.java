@@ -20,6 +20,9 @@
 package de.jackwhite20.japs.client.sub;
 
 import de.jackwhite20.japs.client.sub.impl.SubscriberImpl;
+import de.jackwhite20.japs.client.util.ClusterServer;
+
+import java.util.List;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -53,5 +56,17 @@ public final class SubscriberFactory {
     public static Subscriber create(String host, int port, String subscriberName) {
 
         return new SubscriberImpl(host, port, subscriberName);
+    }
+
+    /**
+     * Creates a new subscriber instance which connects to the first cluster server.
+     *
+     * @param clusterServers The list of cluster servers.
+     * @param subscriberName The subscriber name.
+     * @return A new instance of a subscriber implementation.
+     */
+    public static Subscriber create(List<ClusterServer> clusterServers, String subscriberName) {
+
+        return new SubscriberImpl(clusterServers, subscriberName);
     }
 }

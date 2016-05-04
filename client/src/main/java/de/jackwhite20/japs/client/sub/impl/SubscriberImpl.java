@@ -21,8 +21,8 @@ package de.jackwhite20.japs.client.sub.impl;
 
 import com.google.gson.Gson;
 import de.jackwhite20.japs.client.sub.Subscriber;
-import de.jackwhite20.japs.client.sub.impl.exception.SubscriberConnectException;
 import de.jackwhite20.japs.client.sub.impl.handler.*;
+import de.jackwhite20.japs.client.util.ClusterServer;
 import de.jackwhite20.japs.client.util.NameGeneratorUtil;
 import org.json.JSONObject;
 
@@ -58,11 +58,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private boolean connected;
 
-    private String host;
-
-    private int port;
-
     private String name;
+
+    private List<ClusterServer> clusterServers;
+
+    private int clusterServerIndex = 0;
 
     private SocketChannel socketChannel;
 
@@ -87,14 +87,23 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     public SubscriberImpl(String host, int port, String name) {
 
-        this.host = host;
-        this.port = port;
-        this.name = name;
-
-        connect();
+        this(Collections.singletonList(new ClusterServer(host, port)), name);
     }
 
-    private void connect() {
+    public SubscriberImpl(List<ClusterServer> clusterServers, String name) {
+
+        this.clusterServers = clusterServers;
+        this.name = name;
+
+        // Get the first cluster server info
+        String firstHost = clusterServers.get(clusterServerIndex).host();
+        int firstPort = clusterServers.get(clusterServerIndex).port();
+
+        // Try to connect
+        connect(firstHost, firstPort);
+    }
+
+    private void connect(String host, int port) {
 
         try {
             selector = Selector.open();
@@ -111,7 +120,56 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
             connectLatch.await();
         } catch (Exception ignore) {
-            throw new SubscriberConnectException("cant connect to " + host + ":" + port);
+            closeSocket();
+            reconnect();
+        }
+    }
+
+    private void closeSocket() {
+
+        if(selector != null) {
+            try {
+                selector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if(socketChannel != null) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void reconnect() {
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        clusterServerIndex++;
+        if(clusterServers.size() == clusterServerIndex) {
+            clusterServerIndex = 0;
+        }
+
+        // Reset the latch
+        connectLatch = new CountDownLatch(1);
+
+        // Reconnect to the new cluster server
+        connect(clusterServers.get(clusterServerIndex).host(), clusterServers.get(clusterServerIndex).port());
+
+        // Resend the subscribed channels
+        for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
+            subscribe(handlerInfoEntry.getKey(), handlerInfoEntry.getValue().messageHandler().getClass());
+        }
+
+        for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
+            subscribe(handlerInfoEntry.getValue().object().getClass());
         }
     }
 
@@ -130,25 +188,16 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void disconnect() {
+    public void disconnect(boolean force) {
 
         if(connected) {
             connected = false;
 
-            if(selector != null) {
-                try {
-                    selector.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            // Close selector and the socket channel
+            closeSocket();
 
-            if(socketChannel != null) {
-                try {
-                    socketChannel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            if(!force) {
+                reconnect();
             }
         }
     }
@@ -270,7 +319,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
                         int read = socketChannel.read(byteBuffer);
 
                         if(read == -1) {
-                            disconnect();
+                            disconnect(false);
                             return;
                         }
 
@@ -332,7 +381,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
                     }
                 }
             } catch (ConnectException ignore) {
-                throw new SubscriberConnectException("can't connect to " + host + ":" + port);
+                disconnect(false);
             } catch (Exception ignore) {
                 break;
             }
@@ -340,6 +389,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
         countDown();
 
-        disconnect();
+        disconnect(true);
     }
 }

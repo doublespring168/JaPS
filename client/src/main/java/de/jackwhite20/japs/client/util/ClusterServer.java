@@ -17,15 +17,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.client.pub.impl.exception;
+package de.jackwhite20.japs.client.util;
 
 /**
- * Created by JackWhite20 on 11.03.2016.
+ * Created by JackWhite20 on 04.05.2016.
  */
-public class PublisherConnectException extends RuntimeException {
+public class ClusterServer {
 
-    public PublisherConnectException(String message) {
+    private String host;
 
-        super(message);
+    private int port;
+
+    public ClusterServer(String host, int port) {
+
+        this.host = host;
+        this.port = port;
+    }
+
+    public String host() {
+
+        return host;
+    }
+
+    public int port() {
+
+        return port;
     }
 }

@@ -28,8 +28,10 @@ public interface Subscriber {
 
     /**
      * Disconnects the publisher
+     *
+     * @param force If true, the subscriber will not try to reconnect
      */
-    void disconnect();
+    void disconnect(boolean force);
 
     /**
      * Subscribes a channel and sets the handler for it.

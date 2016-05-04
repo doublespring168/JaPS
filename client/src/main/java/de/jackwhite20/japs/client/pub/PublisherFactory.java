@@ -20,6 +20,9 @@
 package de.jackwhite20.japs.client.pub;
 
 import de.jackwhite20.japs.client.pub.impl.PublisherImpl;
+import de.jackwhite20.japs.client.util.ClusterServer;
+
+import java.util.List;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -40,5 +43,16 @@ public final class PublisherFactory {
     public static Publisher create(String host, int port) {
 
         return new PublisherImpl(host, port);
+    }
+
+    /**
+     * Creates a new publisher instance which connects to the first cluster server.
+     *
+     * @param clusterServers The list of cluster servers.
+     * @return A new instance of a publisher implementation.
+     */
+    public static Publisher create(List<ClusterServer> clusterServers) {
+
+        return new PublisherImpl(clusterServers);
     }
 }
