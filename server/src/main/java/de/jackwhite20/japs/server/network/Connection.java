@@ -17,8 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.server;
+package de.jackwhite20.japs.server.network;
 
+import de.jackwhite20.japs.server.JaPS;
+import de.jackwhite20.japs.server.JaPSServer;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -36,9 +38,7 @@ import java.util.logging.Logger;
  */
 public class Connection {
 
-    private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
-
-    private static final int INITIAL_STRING_BUILDER_SIZE = 256;
+    private static final Logger LOGGER = JaPS.getLogger();
 
     private static final int BUFFER_GROW_FACTOR = 2;
 
@@ -51,8 +51,6 @@ public class Connection {
     private SocketChannel socketChannel;
 
     private List<String> channels = new ArrayList<>();
-
-    private StringBuilder stringBuilder = new StringBuilder(INITIAL_STRING_BUILDER_SIZE);
 
     private SocketAddress remoteAddress;
 
@@ -78,7 +76,16 @@ public class Connection {
     public void send(String data) {
 
         try {
-            socketChannel.write(ByteBuffer.wrap((data + "\n").getBytes()));
+            byte[] bytes = data.getBytes("UTF-8");
+            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
+            byteBuffer.putInt(bytes.length);
+            byteBuffer.put(bytes);
+
+            byteBuffer.flip();
+
+            socketChannel.write(byteBuffer);
+
+            //socketChannel.write(ByteBuffer.wrap((data + "\n").getBytes()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -136,55 +143,61 @@ public class Connection {
 
             byteBuffer.flip();
 
-            byte[] bytes = new byte[read];
-            byteBuffer.get(bytes);
+            while (byteBuffer.remaining() > 0) {
+                byteBuffer.mark();
 
-            for (byte aByte : bytes) {
-                char c = ((char) aByte);
-                stringBuilder.append(c);
+                if (byteBuffer.remaining() < 4) {
+                    break;
+                }
 
-                if(c == '\n') {
-                    String jsonLine = stringBuilder.toString();
-                    stringBuilder.setLength(0);
+                int readable = byteBuffer.getInt();
+                if (byteBuffer.remaining() < readable) {
+                    byteBuffer.reset();
+                    break;
+                }
 
-                    JSONObject jsonObject = new JSONObject(jsonLine);
+                byte[] bytes = new byte[readable];
+                byteBuffer.get(bytes);
 
-                    if(jsonObject.isNull("op")) {
+                String json = new String(bytes, "UTF-8");
+
+                JSONObject jsonObject = new JSONObject(json);
+
+                if(jsonObject.isNull("op")) {
+                    break;
+                }
+
+                int op = ((Integer) jsonObject.remove("op"));
+
+                switch (op) {
+                    case 2:
+                        if(!jsonObject.has("su")) {
+                            // Broadcast it to all subscriber
+                            server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
+                        } else {
+                            // Broadcast to specific subscriber
+                            server.broadcastTo(this, jsonObject.getString("ch"), jsonObject.toString(), jsonObject.getString("su"));
+                        }
                         break;
-                    }
+                    case 0:
+                        String channelToRegister = jsonObject.getString("ch");
 
-                    int op = ((Integer) jsonObject.remove("op"));
+                        server.subscribeChannel(channelToRegister, this);
+                        channels.add(channelToRegister);
+                        break;
+                    case 1:
+                        String channelToRemove = jsonObject.getString("ch");
 
-                    switch (op) {
-                        case 2:
-                            if(!jsonObject.has("su")) {
-                                // Broadcast it to all subscriber
-                                server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
-                            } else {
-                                // Broadcast to specific subscriber
-                                server.broadcastTo(this, jsonObject.getString("ch"), jsonObject.toString(), jsonObject.getString("su"));
-                            }
-                            break;
-                        case 0:
-                            String channelToRegister = jsonObject.getString("ch");
+                        server.unsubscribeChannel(channelToRemove, this);
+                        channels.remove(channelToRemove);
+                        break;
+                    case 3:
+                        name = jsonObject.getString("su");
 
-                            server.subscribeChannel(channelToRegister, this);
-                            channels.add(channelToRegister);
-                            break;
-                        case 1:
-                            String channelToRemove = jsonObject.getString("ch");
-
-                            server.unsubscribeChannel(channelToRemove, this);
-                            channels.remove(channelToRemove);
-                            break;
-                        case 3:
-                            name = jsonObject.getString("su");
-
-                            LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[] {remoteAddress.toString(), name});
-                            break;
-                        default:
-                            LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[] {remoteAddress.toString(), op});
-                    }
+                        LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[] {remoteAddress.toString(), name});
+                        break;
+                    default:
+                        LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[] {remoteAddress.toString(), op});
                 }
             }
 

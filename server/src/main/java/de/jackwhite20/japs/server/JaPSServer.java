@@ -22,8 +22,11 @@ package de.jackwhite20.japs.server;
 import de.jackwhite20.japs.client.pub.Publisher;
 import de.jackwhite20.japs.client.pub.PublisherFactory;
 import de.jackwhite20.japs.server.config.Config;
+import de.jackwhite20.japs.server.network.Connection;
+import de.jackwhite20.japs.server.network.SelectorThread;
 import de.jackwhite20.japs.server.util.RoundRobinList;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.SelectionKey;
@@ -44,7 +47,7 @@ import java.util.stream.Collectors;
  */
 public class JaPSServer implements Runnable {
 
-    private static final Logger LOGGER = Logger.getLogger(JaPSServer.class.getName());
+    private static final Logger LOGGER = JaPS.getLogger();
 
     private String host;
 
@@ -77,12 +80,13 @@ public class JaPSServer implements Runnable {
         this.backlog = backlog;
         this.workerThreads = workerThreads;
 
-        Logger.getLogger("de.jackwhite20").setLevel((debug) ? Level.FINE : Level.INFO);
+        LOGGER.setLevel((debug) ? Level.FINE : Level.INFO);
 
         start();
 
         // Check if there are cluster servers to avoid unnecessary logic execution
         if(cluster.size() > 0 ) {
+            // TODO: 05.05.2016 Executor service
             new Thread(() -> {
                 while (cluster.size() > 0) {
                     LOGGER.info("Trying to connecting to all cluster servers");
@@ -158,6 +162,35 @@ public class JaPSServer implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void stop() {
+
+        LOGGER.info("Server will stop");
+
+        if(serverSocketChannel != null) {
+            try {
+                serverSocketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if(selector != null) {
+            try {
+                selector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Shutdown selector threads
+        selectorThreads.forEach(SelectorThread::shutdown);
+
+        // Close the pool
+        workerPool.shutdown();
+
+        LOGGER.info("Server stopped!");
     }
 
     public void subscribeChannel(String channel, Connection connection) {

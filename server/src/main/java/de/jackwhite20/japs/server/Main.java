@@ -21,7 +21,6 @@ package de.jackwhite20.japs.server;
 
 import com.google.gson.Gson;
 import de.jackwhite20.japs.server.config.Config;
-import de.jackwhite20.japs.server.logging.ConsoleFormatter;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -33,22 +32,14 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
- * Created by JackWhite20 on 25.03.2016.
+ * Created by JackWhite20 on 05.05.2016.
  */
 public class Main {
-
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
-
+    
     public static void main(String[] args) throws Exception {
-
-        setUpLogging();
 
         Config config = null;
 
@@ -85,9 +76,9 @@ public class Main {
             File configFile = new File("config.json");
             if(!configFile.exists()) {
                 try {
-                    Files.copy(Main.class.getClassLoader().getResourceAsStream("config.json"), configFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(JaPS.class.getClassLoader().getResourceAsStream("config.json"), configFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "Unable to load default config!", e);
+                    System.err.println("Unable to load default config!");
                     System.exit(-1);
                 }
             }
@@ -95,38 +86,21 @@ public class Main {
             try {
                 config = new Gson().fromJson(Files.lines(configFile.toPath()).map(String::toString).collect(Collectors.joining(" ")), Config.class);
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unable to load 'config.json' in current directory!");
+                System.err.println("Unable to load 'config.json' in current directory!");
                 System.exit(-1);
             }
         }
 
         if(config == null) {
-            LOGGER.log(Level.SEVERE, "Failed to create a Config!");
-            LOGGER.log(Level.SEVERE, "Please check the program parameters or the 'config.json' file!");
+            System.err.println("Failed to create a Config!");
+            System.err.println("Please check the program parameters or the 'config.json' file!");
         } else {
-            LOGGER.log(Level.INFO, "Using Config: {0}", config);
+            System.err.println("Using Config: " + config);
 
-            LOGGER.info("Starting JaPS server");
-
-            new JaPSServer(config);
+            JaPS jaPS = new JaPS(config);
+            jaPS.init();
+            jaPS.start();
+            jaPS.stop();
         }
-    }
-
-    private static void setUpLogging() {
-
-        ConsoleHandler consoleHandler = new ConsoleHandler();
-        consoleHandler.setFormatter(new ConsoleFormatter());
-        consoleHandler.setLevel(Level.ALL);
-
-        Logger globalLogger = Logger.getLogger("");
-        globalLogger.setLevel(Level.OFF);
-        globalLogger.setUseParentHandlers(false);
-        for (Handler handler : globalLogger.getHandlers()) {
-            globalLogger.removeHandler(handler);
-        }
-
-        Logger japsLogger = Logger.getLogger("de.jackwhite20");
-        japsLogger.setLevel(Level.ALL);
-        japsLogger.addHandler(consoleHandler);
     }
 }

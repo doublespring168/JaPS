@@ -68,7 +68,7 @@ public class PublisherImpl implements Publisher {
         // Try to connect
         connect(firstHost, firstPort);
 
-        new Thread(new PingTask()).start();
+        new Thread(new KeepAliveTask()).start();
     }
 
     private void connect(String host, int port) {
@@ -165,8 +165,16 @@ public class PublisherImpl implements Publisher {
         }
 
         try {
-            // Send the JSONObject as JSON string with a line break at the end
-            socketChannel.write(ByteBuffer.wrap((jsonObject.toString() + "\n").getBytes()));
+            // Send the json data and prepend the length
+            byte[] bytes = jsonObject.toString().getBytes("UTF-8");
+            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
+            byteBuffer.putInt(bytes.length);
+            byteBuffer.put(bytes);
+
+            // Prepare the buffer for writing
+            byteBuffer.flip();
+
+            socketChannel.write(byteBuffer);
         } catch (IOException e) {
             disconnect();
             // TODO: 04.05.2016 ?
@@ -218,7 +226,7 @@ public class PublisherImpl implements Publisher {
         return connected;
     }
 
-    private class PingTask implements Runnable {
+    private class KeepAliveTask implements Runnable {
 
         @Override
         public void run() {

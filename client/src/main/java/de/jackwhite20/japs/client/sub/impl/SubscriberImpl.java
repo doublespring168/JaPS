@@ -46,8 +46,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
-    private static final int INITIAL_STRING_BUILDER_SIZE = 256;
-
     private static final int BUFFER_SIZE = 4096;
 
     private static final int OP_SUBSCRIBE = 0;
@@ -75,8 +73,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
     private static Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
 
     private CountDownLatch connectLatch = new CountDownLatch(1);
-
-    private StringBuilder stringBuilder = new StringBuilder(INITIAL_STRING_BUILDER_SIZE);
 
     private Gson gson = new Gson();
 
@@ -181,7 +177,16 @@ public class SubscriberImpl implements Subscriber, Runnable {
     private void write(String data) {
 
         try {
-            socketChannel.write(ByteBuffer.wrap((data + "\n").getBytes()));
+            // Send the json data and prepend the length
+            byte[] bytes = data.getBytes("UTF-8");
+            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
+            byteBuffer.putInt(bytes.length);
+            byteBuffer.put(bytes);
+
+            // Prepare the buffer for writing
+            byteBuffer.flip();
+
+            socketChannel.write(byteBuffer);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -325,50 +330,56 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
                         byteBuffer.flip();
 
-                        byte[] bytes = new byte[read];
-                        byteBuffer.get(bytes);
+                        while (byteBuffer.remaining() > 0) {
+                            byteBuffer.mark();
 
-                        for (byte aByte : bytes) {
-                            char c = ((char) aByte);
-                            stringBuilder.append(c);
+                            if (byteBuffer.remaining() < 4) {
+                                break;
+                            }
 
-                            if (c == '\n') {
-                                String jsonLine = stringBuilder.toString();
-                                stringBuilder.setLength(0);
+                            int readable = byteBuffer.getInt();
+                            if (byteBuffer.remaining() < readable) {
+                                byteBuffer.reset();
+                                break;
+                            }
 
-                                JSONObject jsonObject = new JSONObject(jsonLine);
+                            byte[] bytes = new byte[readable];
+                            byteBuffer.get(bytes);
 
-                                String channel = ((String) jsonObject.remove("ch"));
+                            String json = new String(bytes, "UTF-8");
 
-                                if(channel == null || channel.isEmpty()) {
-                                    continue;
+                            JSONObject jsonObject = new JSONObject(json);
+
+                            String channel = ((String) jsonObject.remove("ch"));
+
+                            if(channel == null || channel.isEmpty()) {
+                                continue;
+                            }
+
+                            HandlerInfo handlerInfo = handlers.get(channel);
+
+                            if(handlerInfo != null) {
+                                if (handlerInfo.classType() == ClassType.JSON) {
+                                    handlerInfo.messageHandler().onMessage(channel, jsonObject);
+                                } else {
+                                    handlerInfo.messageHandler().onMessage(channel, gson.fromJson(jsonObject.toString(), handlerInfo.clazz()));
                                 }
+                            }else {
+                                MultiHandlerInfo multiHandlerInfo = multiHandlers.get(channel);
 
-                                HandlerInfo handlerInfo = handlers.get(channel);
+                                if(multiHandlerInfo != null) {
+                                    for (MultiHandlerInfo.Entry entry : multiHandlerInfo.entries()) {
+                                        if (!jsonObject.isNull(entry.key().value())) {
+                                            if (jsonObject.get(entry.key().value()).equals(entry.value().value())) {
+                                                // Remove matched key value pair
+                                                jsonObject.remove(entry.key().value());
 
-                                if(handlerInfo != null) {
-                                    if (handlerInfo.classType() == ClassType.JSON) {
-                                        handlerInfo.messageHandler().onMessage(channel, jsonObject);
-                                    } else {
-                                        handlerInfo.messageHandler().onMessage(channel, gson.fromJson(jsonObject.toString(), handlerInfo.clazz()));
-                                    }
-                                }else {
-                                    MultiHandlerInfo multiHandlerInfo = multiHandlers.get(channel);
-
-                                    if(multiHandlerInfo != null) {
-                                        for (MultiHandlerInfo.Entry entry : multiHandlerInfo.entries()) {
-                                            if (!jsonObject.isNull(entry.key().value())) {
-                                                if (jsonObject.get(entry.key().value()).equals(entry.value().value())) {
-                                                    // Remove matched key value pair
-                                                    jsonObject.remove(entry.key().value());
-
-                                                    if(entry.classType() == ClassType.JSON) {
-                                                        // Invoke the matching method
-                                                        entry.method().invoke(multiHandlerInfo.object(), jsonObject);
-                                                    } else {
-                                                        // Deserialize with gson
-                                                        entry.method().invoke(multiHandlerInfo.object(), gson.fromJson(jsonObject.toString(), entry.paramClass()));
-                                                    }
+                                                if(entry.classType() == ClassType.JSON) {
+                                                    // Invoke the matching method
+                                                    entry.method().invoke(multiHandlerInfo.object(), jsonObject);
+                                                } else {
+                                                    // Deserialize with gson
+                                                    entry.method().invoke(multiHandlerInfo.object(), gson.fromJson(jsonObject.toString(), entry.paramClass()));
                                                 }
                                             }
                                         }

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.server;
+package de.jackwhite20.japs.server.network;
 
 import java.io.IOException;
 import java.nio.channels.DatagramChannel;
@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  */
 public class SelectorThread implements Runnable {
 
-    private static final Logger LOGGER = Logger.getLogger(SelectorThread.class.getName());
+    private static final Logger LOGGER = Logger.getLogger("JaPS");
 
     private boolean running;
 
