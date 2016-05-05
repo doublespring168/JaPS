@@ -214,8 +214,11 @@ class JaPSPublisher
         $array['op'] = 2;
         $array['ch'] = $channel;
 
-        $data = json_encode($array) . "\n";
-        socket_write($this->socket, $data, strlen($data));
+        $json = json_encode($array);
+        $jsonLength = strlen($json);
+        $length = pack('N', $jsonLength);
+
+        socket_write($this->socket, $length . $json, $jsonLength + 4);
     }
 
     /**
