@@ -125,7 +125,7 @@ public class PublisherImpl implements Publisher {
     }
 
     @Override
-    public void disconnect() {
+    public void disconnect(boolean force) {
 
         if(connected) {
             // We are not connected anymore
@@ -134,8 +134,10 @@ public class PublisherImpl implements Publisher {
             // Close the socket channel
             closeSocket();
 
-            // Try to reconnect
-            reconnect();
+            if(!force) {
+                // Try to reconnect
+                reconnect();
+            }
         }
     }
 
@@ -176,7 +178,7 @@ public class PublisherImpl implements Publisher {
 
             socketChannel.write(byteBuffer);
         } catch (IOException e) {
-            disconnect();
+            disconnect(false);
             // TODO: 04.05.2016 ?
             //e.printStackTrace();
         }

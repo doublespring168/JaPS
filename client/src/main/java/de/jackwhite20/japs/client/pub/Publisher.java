@@ -28,8 +28,10 @@ public interface Publisher {
 
     /**
      * Disconnects the publisher
+     *
+     * @param force If true, the publisher will not try to reconnect
      */
-    void disconnect();
+    void disconnect(boolean force);
 
     /**
      * Publishes the given JSONObject to the given channel.

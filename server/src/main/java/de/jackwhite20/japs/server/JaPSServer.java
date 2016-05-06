@@ -220,7 +220,7 @@ public class JaPSServer implements Runnable {
         }
 
         if(!connection.channels().isEmpty()) {
-            LOGGER.log(Level.FINE, "[{0}] Channels unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), String.join(", ", connection.channels())});
+            LOGGER.log(Level.FINE, "[{0}] Channels unsubscribed from {1}: {2}", new Object[] {connection.remoteAddress().toString(), connection.name(), String.join(", ", connection.channels())});
         }
     }
 
