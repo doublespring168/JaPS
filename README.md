@@ -63,6 +63,9 @@ publisher.publish("backend", backendJson);
 
 // Publish to specific subscriber
 publisher.publish("test", fooBar, "some-subscriber");
+
+// True because we want to force the disconnect so that it will not try to reconnect to the cluster
+publisher.disconnect(true);
 ```
 
 _Subscriber:_
@@ -71,6 +74,9 @@ Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
 subscriber.subscribe("test", TestChannelHandler.class);
 subscriber.subscribe(BackendMultiChannelHandler.class);
 subscriber.subscribe("gson", GsonChannelHandler.class);
+
+// True because we want to force the disconnect so that it will not try to reconnect to the cluster
+subscriber.disconnect(true);
 ```
 
 _Subscriber with defined name:_
