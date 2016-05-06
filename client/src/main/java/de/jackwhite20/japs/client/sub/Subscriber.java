@@ -34,6 +34,14 @@ public interface Subscriber {
     void disconnect(boolean force);
 
     /**
+     * Checks if the given channel is subscribed.
+     *
+     * @param channel The channel to check.
+     * @return True if it is subscribed, otherwise false.
+     */
+    boolean hasSubscription(String channel);
+
+    /**
      * Subscribes a channel and sets the handler for it.
      *
      * @param channel The channel to subscribe.

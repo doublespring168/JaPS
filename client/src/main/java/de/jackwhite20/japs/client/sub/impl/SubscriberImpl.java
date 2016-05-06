@@ -74,6 +74,8 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private CountDownLatch connectLatch = new CountDownLatch(1);
 
+    private long reconnectPause = 0;
+
     private Gson gson = new Gson();
 
     public SubscriberImpl(String host, int port) {
@@ -142,13 +144,19 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private void reconnect() {
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if(reconnectPause > 0) {
+            try {
+                Thread.sleep(reconnectPause);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         clusterServerIndex++;
+        if(reconnectPause < 1000) {
+            reconnectPause += 100;
+        }
+
         if(clusterServers.size() == clusterServerIndex) {
             clusterServerIndex = 0;
         }
@@ -208,6 +216,12 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
+    public boolean hasSubscription(String channel) {
+
+        return handlers.containsKey(channel) || multiHandlers.containsKey(channel);
+    }
+
+    @Override
     public void subscribe(String channel, Class<? extends ChannelHandler> handler) {
 
         try {
@@ -264,13 +278,17 @@ public class SubscriberImpl implements Subscriber, Runnable {
     @Override
     public void unsubscribe(String channel) {
 
-        handlers.remove(channel);
+        // Only send unsubscribe if the channel is subscribed
+        if(handlers.containsKey(channel) || multiHandlers.containsKey(channel)) {
+            handlers.remove(channel);
+            multiHandlers.remove(channel);
 
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("op", OP_UNSUBSCRIBE);
-        jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("op", OP_UNSUBSCRIBE);
+            jsonObject.put("ch", channel);
 
-        write(jsonObject.toString());
+            write(jsonObject.toString());
+        }
     }
 
     @Override
