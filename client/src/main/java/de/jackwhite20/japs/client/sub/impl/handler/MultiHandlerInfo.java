@@ -19,6 +19,9 @@
 
 package de.jackwhite20.japs.client.sub.impl.handler;
 
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Key;
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Value;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;

@@ -18,6 +18,7 @@ therefore I have decided to publish it here on GitHub.
 - scalable
 - simple JSON
 - easy to implement in other languages (PHP publisher example at to bottom)
+- async publishing via the AsyncPublisher
 - full multi-core utilization and configurable number of threads
 - combine multiple JaPS server to a cluster
 - cluster failover with auto reconnect and sync
@@ -63,6 +64,11 @@ publisher.publish("backend", backendJson);
 
 // Publish to specific subscriber
 publisher.publish("test", fooBar, "some-subscriber");
+
+// You need to publish something async because you don't want to block your main thread perhaps?
+// Here you go
+AsyncPublisher asyncPublisher = publisher.async();
+asyncPublisher.publish("test", fooBar);
 
 // True because we want to force the disconnect so that it will not try to reconnect to the cluster
 publisher.disconnect(true);

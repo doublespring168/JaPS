@@ -92,4 +92,11 @@ public interface Publisher {
      * @return True if connected, otherwise false.
      */
     boolean connected();
+
+    /**
+     * Returns the async publisher implementation.
+     *
+     * @return The async publisher.
+     */
+    AsyncPublisher async();
 }

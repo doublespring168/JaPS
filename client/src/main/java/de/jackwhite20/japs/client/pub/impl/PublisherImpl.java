@@ -20,6 +20,7 @@
 package de.jackwhite20.japs.client.pub.impl;
 
 import com.google.gson.Gson;
+import de.jackwhite20.japs.client.pub.AsyncPublisher;
 import de.jackwhite20.japs.client.pub.Publisher;
 import de.jackwhite20.japs.client.util.ClusterServer;
 import org.json.JSONException;
@@ -32,6 +33,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -52,6 +55,10 @@ public class PublisherImpl implements Publisher {
 
     private Gson gson = new Gson();
 
+    private ExecutorService executorService;
+
+    private AsyncPublisher asyncPublisher;
+
     public PublisherImpl(String host, int port) {
 
         this(Collections.singletonList(new ClusterServer(host, port)));
@@ -60,6 +67,13 @@ public class PublisherImpl implements Publisher {
     public PublisherImpl(List<ClusterServer> clusterServers) {
 
         this.clusterServers = clusterServers;
+        this.executorService = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = Executors.defaultThreadFactory().newThread(r);
+            thread.setName("Publisher Thread");
+
+            return thread;
+        });
+        this.asyncPublisher = new AsyncPublisherImpl(executorService, this);
 
         // Get the first cluster server info
         String firstHost = clusterServers.get(clusterServerIndex).host();
@@ -137,6 +151,9 @@ public class PublisherImpl implements Publisher {
             if(!force) {
                 // Try to reconnect
                 reconnect();
+            } else {
+                // Shutdown our executor service
+                executorService.shutdown();
             }
         }
     }
@@ -179,8 +196,6 @@ public class PublisherImpl implements Publisher {
             socketChannel.write(byteBuffer);
         } catch (IOException e) {
             disconnect(false);
-            // TODO: 04.05.2016 ?
-            //e.printStackTrace();
         }
     }
 
@@ -226,6 +241,12 @@ public class PublisherImpl implements Publisher {
     public boolean connected() {
 
         return connected;
+    }
+
+    @Override
+    public AsyncPublisher async() {
+
+        return asyncPublisher;
     }
 
     private class KeepAliveTask implements Runnable {
