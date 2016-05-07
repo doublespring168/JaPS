@@ -88,7 +88,7 @@ public class PublisherTest {
         jsonObject.put("foo", "bar");
         publisher.publish("test", jsonObject);
 
-        publisher.publish("gson", new FooBar("bar"));
+        //publisher.publish("gson", new FooBar("bar"));
 
         JSONObject backendJson = new JSONObject();
         backendJson.put("role", "update");
@@ -101,7 +101,7 @@ public class PublisherTest {
             e.printStackTrace();
         }
 
-        subscriber.disconnect();
-        publisher.disconnect();
+        subscriber.disconnect(true);
+        publisher.disconnect(true);
     }
 }
