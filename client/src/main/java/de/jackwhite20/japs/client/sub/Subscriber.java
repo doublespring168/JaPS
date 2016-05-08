@@ -43,6 +43,16 @@ public interface Subscriber {
 
     /**
      * Subscribes a channel and sets the handler for it.
+     *
+     * If the channel is already subscribed, the channel handler will be overwritten.
+     *
+     * @param channel The channel to subscribe to.
+     * @param handler The handler which is responsible for the messages received in that channel.
+     */
+    void subscribe(String channel, Class<? extends ChannelHandler> handler);
+
+    /**
+     * Subscribes a channel and sets the handler for it.
      * The class must have a Channel annotation with the channel the class is responsible for.
      *
      * If the channel is already subscribed, the channel handler will be overwritten.

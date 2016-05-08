@@ -245,10 +245,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void subscribe(Class<? extends ChannelHandler> handler) {
-
-        // Get channel and check the class for annotation etc.
-        String channel = getChannelFromAnnotation(handler);
+    public void subscribe(String channel, Class<? extends ChannelHandler> handler) {
 
         try {
             //noinspection unchecked
@@ -262,6 +259,15 @@ public class SubscriberImpl implements Subscriber, Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void subscribe(Class<? extends ChannelHandler> handler) {
+
+        // Get channel and check the class for annotation etc.
+        String channel = getChannelFromAnnotation(handler);
+
+        subscribe(channel, handler);
     }
 
     @Override
