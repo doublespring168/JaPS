@@ -18,6 +18,7 @@
  */
 
 import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Channel;
 import org.json.JSONObject;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
+@Channel("test")
 public class TestChannelHandler extends ChannelHandler<JSONObject> {
 
     public static final AtomicInteger PACKETS = new AtomicInteger(1);

@@ -91,6 +91,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
         this(Collections.singletonList(new ClusterServer(host, port)), name);
     }
 
+    public SubscriberImpl(List<ClusterServer> clusterServers) {
+
+        this(clusterServers, NameGeneratorUtil.generateName("subscriber", ID_COUNTER.getAndIncrement()));
+    }
+
     public SubscriberImpl(List<ClusterServer> clusterServers, String name) {
 
         this.clusterServers = clusterServers;
@@ -172,11 +177,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
         // Resend the subscribed channels
         for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
-            subscribe(handlerInfoEntry.getKey(), handlerInfoEntry.getValue().messageHandler().getClass());
+            subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
         }
 
         for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
-            subscribe(handlerInfoEntry.getValue().object().getClass());
+            subscribeMulti(handlerInfoEntry.getValue().object().getClass());
         }
     }
 
@@ -203,6 +208,21 @@ public class SubscriberImpl implements Subscriber, Runnable {
         }
     }
 
+    private String getChannelFromAnnotation(Class<?> clazz) {
+
+        if(!clazz.isAnnotationPresent(Channel.class)) {
+            throw new IllegalArgumentException("the handler class " + clazz.getSimpleName() + " has no 'Channel' annotation");
+        }
+
+        String channel = clazz.getAnnotation(Channel.class).value();
+
+        if(channel.isEmpty()) {
+            throw new IllegalStateException("value of the 'Channel' annotation of class " + clazz.getSimpleName() + " is empty");
+        }
+
+        return channel;
+    }
+
     @Override
     public void disconnect(boolean force) {
 
@@ -225,15 +245,18 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void subscribe(String channel, Class<? extends ChannelHandler> handler) {
+    public void subscribe(Class<? extends ChannelHandler> handler) {
+
+        // Get channel and check the class for annotation etc.
+        String channel = getChannelFromAnnotation(handler);
 
         try {
             //noinspection unchecked
             handlers.put(channel, new HandlerInfo(handler.newInstance()));
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", OP_SUBSCRIBE);
-            jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OP_SUBSCRIBE)
+                    .put("ch", channel);
 
             write(jsonObject.toString());
         } catch (Exception e) {
@@ -242,11 +265,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void subscribe(Class<?> handler) {
+    public void subscribeMulti(Class<?> handler) {
 
-        if(!handler.isAnnotationPresent(Channel.class)) {
-            throw new IllegalArgumentException("the handler class has no 'Channel' annotation");
-        }
+        // Get channel and check the class for annotation etc.
+        String channel = getChannelFromAnnotation(handler);
 
         try {
             List<MultiHandlerInfo.Entry> entries = new ArrayList<>();
@@ -260,17 +282,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
                 }
             }
 
-            String channel = handler.getAnnotation(Channel.class).value();
-
-            if(channel.isEmpty()) {
-                throw new IllegalStateException("value of the 'Channel' annotation of class " + handler.getSimpleName() + " is empty");
-            }
-
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", OP_SUBSCRIBE);
-            jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OP_SUBSCRIBE)
+                    .put("ch", channel);
 
             write(jsonObject.toString());
         } catch (Exception e) {
@@ -286,9 +302,9 @@ public class SubscriberImpl implements Subscriber, Runnable {
             handlers.remove(channel);
             multiHandlers.remove(channel);
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", OP_UNSUBSCRIBE);
-            jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OP_UNSUBSCRIBE)
+                    .put("ch", channel);
 
             write(jsonObject.toString());
         }

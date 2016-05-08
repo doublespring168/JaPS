@@ -77,9 +77,9 @@ publisher.disconnect(true);
 _Subscriber:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
-subscriber.subscribe("test", TestChannelHandler.class);
-subscriber.subscribe(BackendMultiChannelHandler.class);
-subscriber.subscribe("gson", GsonChannelHandler.class);
+subscriber.subscribe(TestChannelHandler.class);
+subscriber.subscribeMulti(BackendMultiChannelHandler.class);
+subscriber.subscribe(GsonChannelHandler.class);
 
 // True because we want to force the disconnect so that it will not try to reconnect to the cluster
 subscriber.disconnect(true);
@@ -93,6 +93,7 @@ subscriber.subscribe("test", TestChannelHandler.class);
 
 _TestChannelHandler:_
 ```java
+@Channel("test")
 public class TestChannelHandler extends ChannelHandler<JSONObject> {
 
     @Override
@@ -127,6 +128,7 @@ public class BackendMultiChannelHandler {
 
 _GsonChannelHandler:_
 ```java
+@Channel("gson")
 public class GsonChannelHandler extends ChannelHandler<FooBar> {
 
     @Override

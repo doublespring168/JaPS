@@ -17,9 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import de.jackwhite20.japs.client.sub.impl.handler.Channel;
-import de.jackwhite20.japs.client.sub.impl.handler.Key;
-import de.jackwhite20.japs.client.sub.impl.handler.Value;
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Channel;
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Key;
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Value;
 import org.json.JSONObject;
 
 /**

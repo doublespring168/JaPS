@@ -28,17 +28,17 @@ import org.json.JSONObject;
  */
 public class PublisherTest {
 
-    public static final String HOST = "localhost";
+    public static final String HOST = "192.168.2.102";
     public static final int CLIENTS = 20;
     public static final int MESSAGES_PER_CLIENT = 100;
     public static final int TOTAL_MESSAGES = CLIENTS * MESSAGES_PER_CLIENT;
 
     public static void main(String[] args) {
 
-        Subscriber subscriber = SubscriberFactory.create(HOST, 1337);
-        subscriber.subscribe("test", TestChannelHandler.class);
-        subscriber.subscribe("gson", TestGsonChannelHandler.class);
-        subscriber.subscribe(BackendMultiChannelHandler.class);
+        Subscriber subscriber = SubscriberFactory.create(HOST, 6000);
+        subscriber.subscribe(TestChannelHandler.class);
+        subscriber.subscribe(TestGsonChannelHandler.class);
+        subscriber.subscribeMulti(BackendMultiChannelHandler.class);
 
 /*        CountDownLatch countDownLatch = new CountDownLatch(CLIENTS);
 
@@ -82,13 +82,13 @@ public class PublisherTest {
 
         subscriber.disconnect();*/
 
-        Publisher publisher = PublisherFactory.create(HOST, 1337);
+        Publisher publisher = PublisherFactory.create(HOST, 6000);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("foo", "bar");
         publisher.publish("test", jsonObject);
 
-        publisher.publish("gson", new FooBar("bar"));
+        //publisher.publish("gson", new FooBar("bar"));
 
         JSONObject backendJson = new JSONObject();
         backendJson.put("role", "update");
@@ -101,7 +101,7 @@ public class PublisherTest {
             e.printStackTrace();
         }
 
-        subscriber.disconnect();
-        publisher.disconnect();
+        subscriber.disconnect(true);
+        publisher.disconnect(true);
     }
 }
