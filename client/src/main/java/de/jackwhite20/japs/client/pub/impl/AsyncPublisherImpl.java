@@ -53,9 +53,21 @@ public class AsyncPublisherImpl implements AsyncPublisher {
     }
 
     @Override
-    public void publish(String channel, JSONObject jsonObject, String subscriberName) {
+    public void publishAll(String channel, JSONObject... jsonObjects) {
 
-        executorService.execute(() -> publisher.publish(channel, jsonObject, subscriberName));
+        executorService.execute(() -> publisher.publish(channel, jsonObjects));
+    }
+
+    @Override
+    public void publish(String channel, String subscriberName, JSONObject jsonObject) {
+
+        executorService.execute(() -> publisher.publish(channel, subscriberName, jsonObject));
+    }
+
+    @Override
+    public void publishAll(String channel, String subscriberName, JSONObject... jsonObjects) {
+
+        executorService.execute(() -> publisher.publishAll(channel, subscriberName, jsonObjects));
     }
 
     @Override
@@ -77,9 +89,21 @@ public class AsyncPublisherImpl implements AsyncPublisher {
     }
 
     @Override
-    public void publish(String channel, Object object, String subscriberName) {
+    public void publishAll(String channel, Object... objects) {
 
-        executorService.execute(() -> publisher.publish(channel, object, subscriberName));
+        executorService.execute(() -> publisher.publishAll(channel, objects));
+    }
+
+    @Override
+    public void publish(String channel, String subscriberName, Object object) {
+
+        executorService.execute(() -> publisher.publish(channel, subscriberName, object));
+    }
+
+    @Override
+    public void publishAll(String channel, String subscriberName, Object... objects) {
+
+        executorService.execute(() -> publisher.publishAll(channel, subscriberName, objects));
     }
 
     @Override

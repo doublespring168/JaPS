@@ -161,11 +161,19 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, JSONObject jsonObject) {
 
-        publish(channel, jsonObject, null);
+        publish(channel, null, jsonObject);
     }
 
     @Override
-    public void publish(String channel, JSONObject jsonObject, String subscriberName) {
+    public void publishAll(String channel, JSONObject... jsonObjects) {
+
+        for (JSONObject jsonObject : jsonObjects) {
+            publish(channel, jsonObject);
+        }
+    }
+
+    @Override
+    public void publish(String channel, String subscriberName, JSONObject jsonObject) {
 
         if(channel == null || channel.isEmpty()) {
             throw new IllegalArgumentException("channel cannot be null or empty");
@@ -200,13 +208,21 @@ public class PublisherImpl implements Publisher {
     }
 
     @Override
-    public void publish(String channel, String json) {
+    public void publishAll(String channel, String subscriberName, JSONObject... jsonObjects) {
 
-        publish(channel, json, null);
+        for (JSONObject jsonObject : jsonObjects) {
+            publish(channel, subscriberName, jsonObject);
+        }
     }
 
     @Override
-    public void publish(String channel, String json, String subscriberName) {
+    public void publish(String channel, String json) {
+
+        publish(channel, null, json);
+    }
+
+    @Override
+    public void publish(String channel, String subscriberName, String json) {
 
         if(json == null || json.isEmpty()) {
             throw new IllegalArgumentException("json cannot be null or empty");
@@ -214,7 +230,7 @@ public class PublisherImpl implements Publisher {
 
         try {
             // Publish it as JSONObject that we can add the op code and channel
-            publish(channel, new JSONObject(json), subscriberName);
+            publish(channel, subscriberName, new JSONObject(json));
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -223,18 +239,34 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, Object object) {
 
-        publish(channel, object, null);
+        publish(channel, null, object);
     }
 
     @Override
-    public void publish(String channel, Object object, String subscriberName) {
+    public void publishAll(String channel, Object... objects) {
+
+        for (Object object : objects) {
+            publish(channel, null, object);
+        }
+    }
+
+    @Override
+    public void publish(String channel, String subscriberName, Object object) {
 
         if(object == null) {
             throw new IllegalArgumentException("object cannot be null");
         }
 
         // Publish the serialized object as json string
-        publish(channel, gson.toJson(object), subscriberName);
+        publish(channel, subscriberName, gson.toJson(object));
+    }
+
+    @Override
+    public void publishAll(String channel, String subscriberName, Object... objects) {
+
+        for (Object object : objects) {
+            publish(channel, subscriberName, object);
+        }
     }
 
     @Override

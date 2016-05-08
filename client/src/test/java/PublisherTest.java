@@ -35,7 +35,7 @@ public class PublisherTest {
 
     public static void main(String[] args) {
 
-        Subscriber subscriber = SubscriberFactory.create(HOST, 6000);
+        Subscriber subscriber = SubscriberFactory.create(HOST, 6000, "some-subscriber");
         subscriber.subscribe(TestChannelHandler.class);
         subscriber.subscribe(TestGsonChannelHandler.class);
         subscriber.subscribeMulti(BackendMultiChannelHandler.class);
@@ -88,12 +88,18 @@ public class PublisherTest {
         jsonObject.put("foo", "bar");
         publisher.publish("test", jsonObject);
 
-        //publisher.publish("gson", new FooBar("bar"));
+        publisher.publishAll("test", jsonObject, new JSONObject().put("foo", "second"));
+
+        publisher.publishAll("test", "some-subscriber", jsonObject, new JSONObject().put("foo", "second"));
+
+        publisher.publishAll("gson", new FooBar("bar"), new FooBar("bar2"));
+
+        publisher.publishAll("gson", "some-subscriber", new FooBar("bar"), new FooBar("bar2"));
 
         JSONObject backendJson = new JSONObject();
         backendJson.put("role", "update");
         backendJson.put("ping", 5);
-        publisher.publish("backend", backendJson);
+        publisher.async().publish("backend", backendJson);
 
         try {
             Thread.sleep(1000);

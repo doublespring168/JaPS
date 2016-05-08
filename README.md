@@ -13,6 +13,7 @@ therefore I have decided to publish it here on GitHub.
 - publish to specific subscriber
 - custom object serialization with [gson] (https://github.com/google/gson)
 - clean API
+- extensive API
 - low cpu and memory consumption
 - lightweight
 - scalable
@@ -62,8 +63,20 @@ backendJson.put("role", "update");
 backendJson.put("ping", 5);
 publisher.publish("backend", backendJson);
 
-// Publish to specific subscriber
-publisher.publish("test", fooBar, "some-subscriber");
+// Publish to a channel and a specific subscriber
+publisher.publish("test", "some-subscriber", fooBar);
+
+// Publish multiple json objects to a channel
+publisher.publishAll("test", jsonObject, new JSONObject().put("foo", "second"));
+
+// Publish multiple json objects to a channel and a specific subscriber
+publisher.publishAll("test", "some-subscriber", jsonObject, new JSONObject().put("foo", "second"));
+
+// Publish multiple objects to a channel
+publisher.publishAll("gson", new FooBar("bar"), new FooBar("bar2"));
+
+// Publish multiple objects to a channel and a specific subscriber
+publisher.publishAll("gson", "some-subscriber", new FooBar("bar"), new FooBar("bar2"));
 
 // You need to publish something async because you don't want to block your main thread perhaps?
 // Here you go
