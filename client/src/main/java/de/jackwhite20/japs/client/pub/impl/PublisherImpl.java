@@ -33,8 +33,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -59,12 +61,20 @@ public class PublisherImpl implements Publisher {
 
     private AsyncPublisher asyncPublisher;
 
+    private AtomicBoolean reconnecting = new AtomicBoolean(false);
+
+    private ConcurrentLinkedQueue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
+
     public PublisherImpl(String host, int port) {
 
         this(Collections.singletonList(new ClusterServer(host, port)));
     }
 
     public PublisherImpl(List<ClusterServer> clusterServers) {
+
+        if (clusterServers == null || clusterServers.isEmpty()) {
+            throw new IllegalArgumentException("clusterServers cannot be null or empty");
+        }
 
         this.clusterServers = clusterServers;
         this.executorService = Executors.newSingleThreadExecutor(r -> {
@@ -81,11 +91,14 @@ public class PublisherImpl implements Publisher {
 
         // Try to connect
         connect(firstHost, firstPort);
+        //tryConnect();
 
         new Thread(new KeepAliveTask()).start();
+
+        //new Thread(new ConnectTask()).start();
     }
 
-    private void connect(String host, int port) {
+    private boolean connect(String host, int port) {
 
         try {
             // Open a new socket channel and connect to the host and port
@@ -97,10 +110,15 @@ public class PublisherImpl implements Publisher {
             // We are connected successfully
             connected = true;
             reconnectPause = 0;
+
+            return true;
         } catch (IOException e) {
             closeSocket();
-            reconnect();
+            tryConnect();
+            //reconnect();
         }
+
+        return false;
     }
 
     private void reconnect() {
@@ -124,6 +142,47 @@ public class PublisherImpl implements Publisher {
 
         // Reconnect to the new cluster server
         connect(clusterServers.get(clusterServerIndex).host(), clusterServers.get(clusterServerIndex).port());
+    }
+
+    private void tryConnect() {
+
+        if (!reconnecting.get()) {
+            reconnecting.set(true);
+
+            new Thread(new ConnectTask()).start();
+        }
+        /*ClusterServer connectTo = clusterServers.get(clusterServerIndex);
+
+        while (!connect(connectTo.host(), connectTo.port())) {
+
+            if(reconnectPause > 0) {
+                try {
+                    Thread.sleep(reconnectPause);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            clusterServerIndex++;
+            if(reconnectPause < 1000) {
+                reconnectPause += 100;
+            }
+
+            if(clusterServers.size() == clusterServerIndex) {
+                clusterServerIndex = 0;
+            }
+
+            connectTo = clusterServers.get(clusterServerIndex);
+        }
+
+        if (!sendQueue.isEmpty()) {
+            System.out.println("Resending queue: " + sendQueue.size());
+
+            for (JSONObject jsonObject : sendQueue) {
+                System.out.println("Sending: " + jsonObject);
+                publish(jsonObject.getString("ch"), jsonObject);
+            }
+        }*/
     }
 
     private void closeSocket() {
@@ -150,7 +209,8 @@ public class PublisherImpl implements Publisher {
 
             if(!force) {
                 // Try to reconnect
-                reconnect();
+                tryConnect();
+                //reconnect();
             } else {
                 // Shutdown our executor service
                 executorService.shutdown();
@@ -181,6 +241,14 @@ public class PublisherImpl implements Publisher {
 
         if(jsonObject == null || jsonObject.length() == 0) {
             throw new IllegalArgumentException("jsonObject cannot be null or empty");
+        }
+
+        if (socketChannel == null || !socketChannel.isConnected()) {
+            if (sendQueue.size() < 100) {
+                sendQueue.offer(jsonObject.put("ch", channel));
+            }
+
+            return;
         }
 
         // Set the op code, channel
@@ -294,6 +362,52 @@ public class PublisherImpl implements Publisher {
                     Thread.sleep(KEEP_ALIVE_TIME);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private class ConnectTask implements Runnable {
+
+        @Override
+        public void run() {
+
+            ClusterServer connectTo = clusterServers.get(clusterServerIndex);
+
+            while (!connect(connectTo.host(), connectTo.port())) {
+
+                if(reconnectPause > 0) {
+                    try {
+                        Thread.sleep(reconnectPause);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                clusterServerIndex++;
+                if(reconnectPause < 1000) {
+                    reconnectPause += 100;
+                }
+
+                if(clusterServers.size() == clusterServerIndex) {
+                    clusterServerIndex = 0;
+                }
+
+                connectTo = clusterServers.get(clusterServerIndex);
+            }
+
+            reconnecting.set(false);
+
+            if (!sendQueue.isEmpty()) {
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                for (JSONObject jsonObject : sendQueue) {
+                    publish(jsonObject.getString("ch"), jsonObject);
                 }
             }
         }

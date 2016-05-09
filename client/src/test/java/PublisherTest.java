@@ -28,7 +28,8 @@ import org.json.JSONObject;
  */
 public class PublisherTest {
 
-    public static final String HOST = "192.168.2.102";
+    //public static final String HOST = "192.168.2.102";
+    public static final String HOST = "localhost";
     public static final int CLIENTS = 20;
     public static final int MESSAGES_PER_CLIENT = 100;
     public static final int TOTAL_MESSAGES = CLIENTS * MESSAGES_PER_CLIENT;
@@ -37,8 +38,8 @@ public class PublisherTest {
 
         Subscriber subscriber = SubscriberFactory.create(HOST, 6000, "some-subscriber");
         subscriber.subscribe(TestChannelHandler.class);
-        subscriber.subscribe(TestGsonChannelHandler.class);
-        subscriber.subscribeMulti(BackendMultiChannelHandler.class);
+        //subscriber.subscribe(TestGsonChannelHandler.class);
+        //subscriber.subscribeMulti(BackendMultiChannelHandler.class);
 
 /*        CountDownLatch countDownLatch = new CountDownLatch(CLIENTS);
 
@@ -100,6 +101,16 @@ public class PublisherTest {
         backendJson.put("role", "update");
         backendJson.put("ping", 5);
         publisher.async().publish("backend", backendJson);
+
+        for (int i = 0; i < 20; i++) {
+            publisher.publish("test", new FooBar("bar" + i));
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 
         try {
             Thread.sleep(1000);
