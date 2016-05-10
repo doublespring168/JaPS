@@ -27,7 +27,8 @@ import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
 public interface Subscriber {
 
     /**
-     * Disconnects the publisher
+     * Disconnects the publisher.
+     * If you are not forcing a disconnect, this method will block until the reconnect was successful.
      *
      * @param force If true, the subscriber will not try to reconnect
      */

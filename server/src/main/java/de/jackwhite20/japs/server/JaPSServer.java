@@ -37,6 +37,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -145,7 +147,18 @@ public class JaPSServer implements Runnable {
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            workerPool = Executors.newFixedThreadPool(workerThreads + 1);
+            workerPool = Executors.newFixedThreadPool(workerThreads + 1, new ThreadFactory() {
+
+                private final AtomicInteger threadNum = new AtomicInteger(0);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread(r);
+                    thread.setName("JaPS Server Thread #" + threadNum.getAndIncrement());
+
+                    return thread;
+                }
+            });
 
             workerPool.execute(this);
 

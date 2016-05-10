@@ -41,7 +41,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -77,8 +76,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
     private static Map<String, HandlerInfo> handlers = new HashMap<>();
 
     private static Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
-
-    private CountDownLatch connectLatch = new CountDownLatch(1);
 
     private long reconnectPause = 0;
 
@@ -126,80 +123,41 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
         try {
             selector = Selector.open();
-
-            // Open a new socket channel and connect to the host and port
             socketChannel = SocketChannel.open();
-            socketChannel.configureBlocking(false);
+
             // Disable the Nagle algorithm
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            // Try to connect to the host and port in blocking mode
             socketChannel.connect(new InetSocketAddress(host, port));
-            socketChannel.register(selector, SelectionKey.OP_CONNECT);
+            socketChannel.finishConnect();
 
-            new Thread(this).start();
+            // Register with our name
+            write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
 
-            connectLatch.await();
+            // Resend the subscribed channels if we have lost connection before
+            for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
+                subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
+            }
+
+            for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
+                subscribeMulti(handlerInfoEntry.getValue().object().getClass());
+            }
+
+            // Set non blocking and register the read event
+            socketChannel.configureBlocking(false);
+            socketChannel.register(selector, SelectionKey.OP_READ);
+
+            Thread subThread = new Thread(this);
+            subThread.setName("Subscriber Thread");
+            subThread.start();
 
             return true;
         } catch (Exception ignore) {
             closeSocket();
-            tryConnect();
-            //reconnect();
+            reconnect();
         }
 
         return false;
-    }
-
-    private void tryConnect() {
-
-        if (!reconnecting.get()) {
-            reconnecting.set(true);
-
-            ClusterServer connectTo = clusterServers.get(clusterServerIndex);
-
-            while (!connect(connectTo.host(), connectTo.port())) {
-
-                if(reconnectPause > 0) {
-                    try {
-                        Thread.sleep(reconnectPause);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                clusterServerIndex++;
-                if(reconnectPause < 1000) {
-                    reconnectPause += 100;
-                }
-
-                if(clusterServers.size() == clusterServerIndex) {
-                    clusterServerIndex = 0;
-                }
-
-                connectTo = clusterServers.get(clusterServerIndex);
-            }
-
-            reconnecting.set(false);
-            //new Thread(new ConnectTask()).start();
-        }
-    }
-
-    private void closeSocket() {
-
-        if(selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if(socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     private void reconnect() {
@@ -221,25 +179,27 @@ public class SubscriberImpl implements Subscriber, Runnable {
             clusterServerIndex = 0;
         }
 
-        // Reset the latch
-        connectLatch = new CountDownLatch(1);
-
-        // Reconnect to the new cluster server
-        connect(clusterServers.get(clusterServerIndex).host(), clusterServers.get(clusterServerIndex).port());
-
-        // Resend the subscribed channels
-        for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
-            subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
-        }
-
-        for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
-            subscribeMulti(handlerInfoEntry.getValue().object().getClass());
-        }
+        ClusterServer clusterServer = clusterServers.get(clusterServerIndex);
+        connect(clusterServer.host(), clusterServer.port());
     }
 
-    private void countDown() {
+    private void closeSocket() {
 
-        connectLatch.countDown();
+        if(selector != null) {
+            try {
+                selector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if(socketChannel != null) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void write(String data) {
@@ -285,8 +245,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             closeSocket();
 
             if(!force) {
-                tryConnect();
-                //reconnect();
+                reconnect();
             }
         }
     }
@@ -405,26 +364,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
                         continue;
                     }
 
-                    if(key.isConnectable()) {
-                        socketChannel.finishConnect();
-
-                        socketChannel.register(selector, SelectionKey.OP_READ);
-
-                        // Register with our name
-                        write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
-
-                        // Resend the subscribed channels if we have lost connection before
-                        for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
-                            subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
-                        }
-
-                        for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
-                            subscribeMulti(handlerInfoEntry.getValue().object().getClass());
-                        }
-
-                        countDown();
-                    }
-
                     if(key.isReadable()) {
                         int read = socketChannel.read(byteBuffer);
 
@@ -497,56 +436,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
                     }
                 }
             } catch (Exception ignore) {
-                // TODO: 09.05.2016 Fix reconnect
                 disconnect(false);
             }
         }
 
-        countDown();
-
         disconnect(true);
-    }
-
-    private class ConnectTask implements Runnable {
-
-        @Override
-        public void run() {
-
-            ClusterServer connectTo = clusterServers.get(clusterServerIndex);
-
-            while (!connect(connectTo.host(), connectTo.port())) {
-
-                if(reconnectPause > 0) {
-                    try {
-                        Thread.sleep(reconnectPause);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                clusterServerIndex++;
-                if(reconnectPause < 1000) {
-                    reconnectPause += 100;
-                }
-
-                if(clusterServers.size() == clusterServerIndex) {
-                    clusterServerIndex = 0;
-                }
-
-                connectTo = clusterServers.get(clusterServerIndex);
-            }
-
-            reconnecting.set(false);
-
-            // Resend the subscribed channels
-            for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
-                subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
-            }
-
-            for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
-                subscribeMulti(handlerInfoEntry.getValue().object().getClass());
-            }
-
-        }
     }
 }

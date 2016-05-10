@@ -401,6 +401,7 @@ public class PublisherImpl implements Publisher {
             if (!sendQueue.isEmpty()) {
 
                 try {
+                    // Give the subscriber a chance to connect and register channel first
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
