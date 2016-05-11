@@ -91,11 +91,6 @@ public class PublisherImpl implements Publisher {
 
         // Try to connect
         connect(firstHost, firstPort);
-        //tryConnect();
-
-        new Thread(new KeepAliveTask()).start();
-
-        //new Thread(new ConnectTask()).start();
     }
 
     private boolean connect(String host, int port) {
@@ -111,11 +106,12 @@ public class PublisherImpl implements Publisher {
             connected = true;
             reconnectPause = 0;
 
+            new Thread(new KeepAliveTask()).start();
+
             return true;
         } catch (IOException e) {
             closeSocket();
-            tryConnect();
-            //reconnect();
+            reconnect();
         }
 
         return false;
@@ -123,66 +119,11 @@ public class PublisherImpl implements Publisher {
 
     private void reconnect() {
 
-        if(reconnectPause > 0) {
-            try {
-                Thread.sleep(reconnectPause);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        clusterServerIndex++;
-        if(reconnectPause < 1000) {
-            reconnectPause += 100;
-        }
-
-        if(clusterServers.size() == clusterServerIndex) {
-            clusterServerIndex = 0;
-        }
-
-        // Reconnect to the new cluster server
-        connect(clusterServers.get(clusterServerIndex).host(), clusterServers.get(clusterServerIndex).port());
-    }
-
-    private void tryConnect() {
-
         if (!reconnecting.get()) {
             reconnecting.set(true);
 
             new Thread(new ConnectTask()).start();
         }
-        /*ClusterServer connectTo = clusterServers.get(clusterServerIndex);
-
-        while (!connect(connectTo.host(), connectTo.port())) {
-
-            if(reconnectPause > 0) {
-                try {
-                    Thread.sleep(reconnectPause);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            clusterServerIndex++;
-            if(reconnectPause < 1000) {
-                reconnectPause += 100;
-            }
-
-            if(clusterServers.size() == clusterServerIndex) {
-                clusterServerIndex = 0;
-            }
-
-            connectTo = clusterServers.get(clusterServerIndex);
-        }
-
-        if (!sendQueue.isEmpty()) {
-            System.out.println("Resending queue: " + sendQueue.size());
-
-            for (JSONObject jsonObject : sendQueue) {
-                System.out.println("Sending: " + jsonObject);
-                publish(jsonObject.getString("ch"), jsonObject);
-            }
-        }*/
     }
 
     private void closeSocket() {
@@ -209,8 +150,7 @@ public class PublisherImpl implements Publisher {
 
             if(!force) {
                 // Try to reconnect
-                tryConnect();
-                //reconnect();
+                reconnect();
             } else {
                 // Shutdown our executor service
                 executorService.shutdown();
@@ -393,16 +333,18 @@ public class PublisherImpl implements Publisher {
                     clusterServerIndex = 0;
                 }
 
+                // Assign the new cluster server
                 connectTo = clusterServers.get(clusterServerIndex);
             }
 
+            // We are no longer reconnecting
             reconnecting.set(false);
 
             if (!sendQueue.isEmpty()) {
 
                 try {
-                    // Give the subscriber a chance to connect and register channel first
-                    Thread.sleep(1000);
+                    // Give the subscriber a chance to connect and register his channels first
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

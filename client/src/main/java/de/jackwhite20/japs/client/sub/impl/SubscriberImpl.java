@@ -41,7 +41,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -78,8 +77,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
     private static Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
 
     private long reconnectPause = 0;
-
-    private AtomicBoolean reconnecting = new AtomicBoolean(false);
 
     private Gson gson = new Gson();
 

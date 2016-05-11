@@ -176,7 +176,7 @@ public class Connection {
                             server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
                         } else {
                             // Broadcast to specific subscriber
-                            server.broadcastTo(this, jsonObject.getString("ch"), jsonObject.toString(), jsonObject.getString("su"));
+                            server.broadcastTo(this, jsonObject.getString("ch"), jsonObject, jsonObject.getString("su"));
                         }
                         break;
                     case 0:

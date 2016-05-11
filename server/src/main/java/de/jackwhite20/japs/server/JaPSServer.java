@@ -25,6 +25,7 @@ import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
 import de.jackwhite20.japs.server.network.SelectorThread;
 import de.jackwhite20.japs.server.util.RoundRobinList;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -248,15 +249,23 @@ public class JaPSServer implements Runnable {
         clusterBroadcast(con, channel, data);
     }
 
-    public void broadcastTo(Connection con, String channel, String data, String subscriberName) {
+    public void broadcastTo(Connection con, String channel, JSONObject data, String subscriberName) {
+
+        String clusterData = data.toString();
 
         if(channelSessions.containsKey(channel)) {
+            // Remove the subscriber name to save bandwidth and remove the unneeded key
+            data.remove("su");
+
+            // Get the correct data to send
+            String broadcastData = data.toString();
+
             for (Connection filteredConnection : channelSessions.get(channel).stream().filter(connection -> connection.name().equals(subscriberName)).collect(Collectors.toList())) {
-                filteredConnection.send(data);
+                filteredConnection.send(broadcastData);
             }
         }
 
-        clusterBroadcast(con, channel, data);
+        clusterBroadcast(con, channel, clusterData);
     }
 
     private void clusterBroadcast(Connection con, String channel, String data) {
