@@ -138,6 +138,13 @@ public class PublisherImpl implements Publisher {
         }
     }
 
+    private void addToQueue(String channel, JSONObject jsonObject) {
+
+        if (sendQueue.size() < 100) {
+            sendQueue.offer(jsonObject.put("ch", channel));
+        }
+    }
+
     @Override
     public void disconnect(boolean force) {
 
@@ -184,10 +191,7 @@ public class PublisherImpl implements Publisher {
         }
 
         if (socketChannel == null || !socketChannel.isConnected()) {
-            if (sendQueue.size() < 100) {
-                sendQueue.offer(jsonObject.put("ch", channel));
-            }
-
+            addToQueue(channel, jsonObject);
             return;
         }
 
@@ -211,6 +215,10 @@ public class PublisherImpl implements Publisher {
 
             socketChannel.write(byteBuffer);
         } catch (IOException e) {
+            if (!channel.equals("keep-alive")) {
+                addToQueue(channel, jsonObject);
+            }
+
             disconnect(false);
         }
     }
