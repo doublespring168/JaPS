@@ -59,7 +59,7 @@ public final class SubscriberFactory {
     }
 
     /**
-     * Creates a new subscriber instance which connects to the first cluster server.
+     * Creates a new subscriber instance with the given name which connects to the first cluster server.
      *
      * @param clusterServers The list of cluster servers.
      * @param subscriberName The subscriber name.
@@ -68,5 +68,16 @@ public final class SubscriberFactory {
     public static Subscriber create(List<ClusterServer> clusterServers, String subscriberName) {
 
         return new SubscriberImpl(clusterServers, subscriberName);
+    }
+
+    /**
+     * Creates a new subscriber instance which connects to the first cluster server.
+     *
+     * @param clusterServers The list of cluster servers.
+     * @return A new instance of a subscriber implementation.
+     */
+    public static Subscriber create(List<ClusterServer> clusterServers) {
+
+        return new SubscriberImpl(clusterServers);
     }
 }

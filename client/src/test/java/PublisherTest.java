@@ -28,6 +28,7 @@ import org.json.JSONObject;
  */
 public class PublisherTest {
 
+    //public static final String HOST = "192.168.2.102";
     public static final String HOST = "localhost";
     public static final int CLIENTS = 20;
     public static final int MESSAGES_PER_CLIENT = 100;
@@ -35,10 +36,10 @@ public class PublisherTest {
 
     public static void main(String[] args) {
 
-        Subscriber subscriber = SubscriberFactory.create(HOST, 1337);
-        subscriber.subscribe("test", TestChannelHandler.class);
-        subscriber.subscribe("gson", TestGsonChannelHandler.class);
-        subscriber.subscribe(BackendMultiChannelHandler.class);
+        Subscriber subscriber = SubscriberFactory.create(HOST, 6000, "some-subscriber");
+        subscriber.subscribe(TestChannelHandler.class);
+        //subscriber.subscribe(TestGsonChannelHandler.class);
+        //subscriber.subscribeMulti(BackendMultiChannelHandler.class);
 
 /*        CountDownLatch countDownLatch = new CountDownLatch(CLIENTS);
 
@@ -82,18 +83,34 @@ public class PublisherTest {
 
         subscriber.disconnect();*/
 
-        Publisher publisher = PublisherFactory.create(HOST, 1337);
+        Publisher publisher = PublisherFactory.create(HOST, 6000);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("foo", "bar");
         publisher.publish("test", jsonObject);
 
-        //publisher.publish("gson", new FooBar("bar"));
+        publisher.publishAll("test", jsonObject, new JSONObject().put("foo", "second"));
+
+        publisher.publishAll("test", "some-subscriber", jsonObject, new JSONObject().put("foo", "second"));
+
+        publisher.publishAll("gson", new FooBar("bar"), new FooBar("bar2"));
+
+        publisher.publishAll("gson", "some-subscriber", new FooBar("bar"), new FooBar("bar2"));
 
         JSONObject backendJson = new JSONObject();
         backendJson.put("role", "update");
         backendJson.put("ping", 5);
-        publisher.publish("backend", backendJson);
+        publisher.async().publish("backend", backendJson);
+
+        for (int i = 0; i < 20; i++) {
+            publisher.publish("test", new FooBar("bar" + i));
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 
         try {
             Thread.sleep(1000);

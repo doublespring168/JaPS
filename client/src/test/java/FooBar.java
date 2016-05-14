@@ -22,13 +22,10 @@
  */
 public class FooBar {
 
-    private String role;
-
     private String foo;
 
-    public FooBar(String role, String foo) {
+    public FooBar(String foo) {
 
-        this.role = role;
         this.foo = foo;
     }
 
@@ -36,8 +33,7 @@ public class FooBar {
     public String toString() {
 
         return "FooBar{" +
-                "role='" + role + '\'' +
-                ", foo='" + foo + '\'' +
+                "foo='" + foo + '\'' +
                 '}';
     }
 }

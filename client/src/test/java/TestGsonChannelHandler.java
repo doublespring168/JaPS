@@ -18,10 +18,12 @@
  */
 
 import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
+import de.jackwhite20.japs.client.sub.impl.handler.annotation.Channel;
 
 /**
  * Created by JackWhite20 on 27.03.2016.
  */
+@Channel("gson")
 public class TestGsonChannelHandler extends ChannelHandler<FooBar> {
 
     @Override

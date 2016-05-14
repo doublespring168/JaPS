@@ -25,6 +25,7 @@ import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
 import de.jackwhite20.japs.server.network.SelectorThread;
 import de.jackwhite20.japs.server.util.RoundRobinList;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -37,6 +38,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -145,7 +148,18 @@ public class JaPSServer implements Runnable {
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-            workerPool = Executors.newFixedThreadPool(workerThreads + 1);
+            workerPool = Executors.newFixedThreadPool(workerThreads + 1, new ThreadFactory() {
+
+                private final AtomicInteger threadNum = new AtomicInteger(0);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread thread = new Thread(r);
+                    thread.setName("JaPS Server Thread #" + threadNum.getAndIncrement());
+
+                    return thread;
+                }
+            });
 
             workerPool.execute(this);
 
@@ -235,15 +249,23 @@ public class JaPSServer implements Runnable {
         clusterBroadcast(con, channel, data);
     }
 
-    public void broadcastTo(Connection con, String channel, String data, String subscriberName) {
+    public void broadcastTo(Connection con, String channel, JSONObject data, String subscriberName) {
+
+        String clusterData = data.toString();
 
         if(channelSessions.containsKey(channel)) {
+            // Remove the subscriber name to save bandwidth and remove the unneeded key
+            data.remove("su");
+
+            // Get the correct data to send
+            String broadcastData = data.toString();
+
             for (Connection filteredConnection : channelSessions.get(channel).stream().filter(connection -> connection.name().equals(subscriberName)).collect(Collectors.toList())) {
-                filteredConnection.send(data);
+                filteredConnection.send(broadcastData);
             }
         }
 
-        clusterBroadcast(con, channel, data);
+        clusterBroadcast(con, channel, clusterData);
     }
 
     private void clusterBroadcast(Connection con, String channel, String data) {

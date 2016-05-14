@@ -21,7 +21,10 @@ package de.jackwhite20.japs.client.sub.impl;
 
 import com.google.gson.Gson;
 import de.jackwhite20.japs.client.sub.Subscriber;
-import de.jackwhite20.japs.client.sub.impl.handler.*;
+import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
+import de.jackwhite20.japs.client.sub.impl.handler.ClassType;
+import de.jackwhite20.japs.client.sub.impl.handler.HandlerInfo;
+import de.jackwhite20.japs.client.sub.impl.handler.MultiHandlerInfo;
 import de.jackwhite20.japs.client.sub.impl.handler.annotation.Channel;
 import de.jackwhite20.japs.client.sub.impl.handler.annotation.Key;
 import de.jackwhite20.japs.client.sub.impl.handler.annotation.Value;
@@ -31,7 +34,6 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -39,7 +41,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -75,8 +76,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private static Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
 
-    private CountDownLatch connectLatch = new CountDownLatch(1);
-
     private long reconnectPause = 0;
 
     private Gson gson = new Gson();
@@ -91,7 +90,20 @@ public class SubscriberImpl implements Subscriber, Runnable {
         this(Collections.singletonList(new ClusterServer(host, port)), name);
     }
 
+    public SubscriberImpl(List<ClusterServer> clusterServers) {
+
+        this(clusterServers, NameGeneratorUtil.generateName("subscriber", ID_COUNTER.getAndIncrement()));
+    }
+
     public SubscriberImpl(List<ClusterServer> clusterServers, String name) {
+
+        if (clusterServers == null || clusterServers.isEmpty()) {
+            throw new IllegalArgumentException("clusterServers cannot be null or empty");
+        }
+
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("name cannot be null or empty");
+        }
 
         this.clusterServers = clusterServers;
         this.name = name;
@@ -104,45 +116,45 @@ public class SubscriberImpl implements Subscriber, Runnable {
         connect(firstHost, firstPort);
     }
 
-    private void connect(String host, int port) {
+    private boolean connect(String host, int port) {
 
         try {
             selector = Selector.open();
-
-            // Open a new socket channel and connect to the host and port
             socketChannel = SocketChannel.open();
-            socketChannel.configureBlocking(false);
+
             // Disable the Nagle algorithm
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+            // Try to connect to the host and port in blocking mode
             socketChannel.connect(new InetSocketAddress(host, port));
-            socketChannel.register(selector, SelectionKey.OP_CONNECT);
+            socketChannel.finishConnect();
 
-            new Thread(this).start();
+            // Register with our name
+            write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
 
-            connectLatch.await();
+            // Resend the subscribed channels if we have lost connection before
+            for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
+                subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
+            }
+
+            for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
+                subscribeMulti(handlerInfoEntry.getValue().object().getClass());
+            }
+
+            // Set non blocking and register the read event
+            socketChannel.configureBlocking(false);
+            socketChannel.register(selector, SelectionKey.OP_READ);
+
+            Thread subThread = new Thread(this);
+            subThread.setName("Subscriber Thread");
+            subThread.start();
+
+            return true;
         } catch (Exception ignore) {
             closeSocket();
             reconnect();
         }
-    }
 
-    private void closeSocket() {
-
-        if(selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if(socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        return false;
     }
 
     private void reconnect() {
@@ -164,25 +176,27 @@ public class SubscriberImpl implements Subscriber, Runnable {
             clusterServerIndex = 0;
         }
 
-        // Reset the latch
-        connectLatch = new CountDownLatch(1);
-
-        // Reconnect to the new cluster server
-        connect(clusterServers.get(clusterServerIndex).host(), clusterServers.get(clusterServerIndex).port());
-
-        // Resend the subscribed channels
-        for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
-            subscribe(handlerInfoEntry.getKey(), handlerInfoEntry.getValue().messageHandler().getClass());
-        }
-
-        for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
-            subscribe(handlerInfoEntry.getValue().object().getClass());
-        }
+        ClusterServer clusterServer = clusterServers.get(clusterServerIndex);
+        connect(clusterServer.host(), clusterServer.port());
     }
 
-    private void countDown() {
+    private void closeSocket() {
 
-        connectLatch.countDown();
+        if(selector != null) {
+            try {
+                selector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if(socketChannel != null) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void write(String data) {
@@ -201,6 +215,21 @@ public class SubscriberImpl implements Subscriber, Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getChannelFromAnnotation(Class<?> clazz) {
+
+        if(!clazz.isAnnotationPresent(Channel.class)) {
+            throw new IllegalArgumentException("the handler class " + clazz.getSimpleName() + " has no 'Channel' annotation");
+        }
+
+        String channel = clazz.getAnnotation(Channel.class).value();
+
+        if(channel.isEmpty()) {
+            throw new IllegalStateException("value of the 'Channel' annotation of class " + clazz.getSimpleName() + " is empty");
+        }
+
+        return channel;
     }
 
     @Override
@@ -231,9 +260,9 @@ public class SubscriberImpl implements Subscriber, Runnable {
             //noinspection unchecked
             handlers.put(channel, new HandlerInfo(handler.newInstance()));
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", OP_SUBSCRIBE);
-            jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OP_SUBSCRIBE)
+                    .put("ch", channel);
 
             write(jsonObject.toString());
         } catch (Exception e) {
@@ -242,11 +271,19 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
-    public void subscribe(Class<?> handler) {
+    public void subscribe(Class<? extends ChannelHandler> handler) {
 
-        if(!handler.isAnnotationPresent(Channel.class)) {
-            throw new IllegalArgumentException("the handler class has no 'Channel' annotation");
-        }
+        // Get channel and check the class for annotation etc.
+        String channel = getChannelFromAnnotation(handler);
+
+        subscribe(channel, handler);
+    }
+
+    @Override
+    public void subscribeMulti(Class<?> handler) {
+
+        // Get channel and check the class for annotation etc.
+        String channel = getChannelFromAnnotation(handler);
 
         try {
             List<MultiHandlerInfo.Entry> entries = new ArrayList<>();
@@ -260,17 +297,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
                 }
             }
 
-            String channel = handler.getAnnotation(Channel.class).value();
-
-            if(channel.isEmpty()) {
-                throw new IllegalStateException("value of the 'Channel' annotation of class " + handler.getSimpleName() + " is empty");
-            }
-
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", OP_SUBSCRIBE);
-            jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OP_SUBSCRIBE)
+                    .put("ch", channel);
 
             write(jsonObject.toString());
         } catch (Exception e) {
@@ -286,9 +317,9 @@ public class SubscriberImpl implements Subscriber, Runnable {
             handlers.remove(channel);
             multiHandlers.remove(channel);
 
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("op", OP_UNSUBSCRIBE);
-            jsonObject.put("ch", channel);
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OP_UNSUBSCRIBE)
+                    .put("ch", channel);
 
             write(jsonObject.toString());
         }
@@ -328,17 +359,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
                     if (!key.isValid()) {
                         continue;
-                    }
-
-                    if(key.isConnectable()) {
-                        socketChannel.finishConnect();
-
-                        socketChannel.register(selector, SelectionKey.OP_READ);
-
-                        // Register with our name
-                        write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
-
-                        countDown();
                     }
 
                     if(key.isReadable()) {
@@ -412,14 +432,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
                         byteBuffer.compact();
                     }
                 }
-            } catch (ConnectException ignore) {
-                disconnect(false);
             } catch (Exception ignore) {
-                break;
+                disconnect(false);
             }
         }
-
-        countDown();
 
         disconnect(true);
     }
