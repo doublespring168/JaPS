@@ -87,7 +87,7 @@ public class JaPS {
         commandManager.addCommand(new HelpCommand("help", new String[]{"h"}, "Show this output"));
         commandManager.addCommand(new SubCommand("sub", new String[]{"s", "subscribe"}, "Subscribe a channel and view it's data passing"));
         commandManager.addCommand(new UnsubCommand("unsub", new String[]{}, "Unsubscribe previous subscribed channels"));
-        commandManager.addCommand(new EndCommand("end", new String[] {"stop"}, "Shutdown the server"));
+        commandManager.addCommand(new EndCommand("end", new String[]{"stop"}, "Shutdown the server"));
 
         logger.info("Initialized");
     }

@@ -40,9 +40,9 @@ public class JaPSLogger extends Logger {
             fileHandler.setFormatter(formatter);
             addHandler(fileHandler);
 
-            ConsoleHandler consoleHandler = new ConsoleHandler( consoleReader );
-            consoleHandler.setFormatter( formatter );
-            addHandler( consoleHandler );
+            ConsoleHandler consoleHandler = new ConsoleHandler(consoleReader);
+            consoleHandler.setFormatter(formatter);
+            addHandler(consoleHandler);
         } catch (IOException e) {
             e.printStackTrace();
         }

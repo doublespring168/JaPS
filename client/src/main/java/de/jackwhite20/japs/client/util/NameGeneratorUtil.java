@@ -40,13 +40,13 @@ public final class NameGeneratorUtil {
 
         String nameString;
 
-        if(id < TEN) {
+        if (id < TEN) {
             nameString = "0000" + id;
-        } else if(id >= TEN && id < ONE_HUNDRED) {
+        } else if (id >= TEN && id < ONE_HUNDRED) {
             nameString = "000" + id;
-        }else if(id >= ONE_HUNDRED && id < ONE_THOUSAND) {
+        } else if (id >= ONE_HUNDRED && id < ONE_THOUSAND) {
             nameString = "00" + id;
-        } else if(id >= ONE_THOUSAND && id < TEN_THOUSAND) {
+        } else if (id >= ONE_THOUSAND && id < TEN_THOUSAND) {
             nameString = "0" + id;
         } else {
             nameString = String.valueOf(id);

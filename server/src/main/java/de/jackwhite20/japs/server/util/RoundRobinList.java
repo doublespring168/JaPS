@@ -39,7 +39,7 @@ public class RoundRobinList<T> {
 
     public T next() {
 
-        if(!iterator.hasNext()) {
+        if (!iterator.hasNext()) {
             iterator = list.iterator();
         }
 

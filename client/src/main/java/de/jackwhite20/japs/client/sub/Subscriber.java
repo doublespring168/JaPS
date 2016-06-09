@@ -44,7 +44,7 @@ public interface Subscriber {
 
     /**
      * Subscribes a channel and sets the handler for it.
-     *
+     * <p>
      * If the channel is already subscribed, the channel handler will be overwritten.
      *
      * @param channel The channel to subscribe to.
@@ -55,7 +55,7 @@ public interface Subscriber {
     /**
      * Subscribes a channel and sets the handler for it.
      * The class must have a Channel annotation with the channel the class is responsible for.
-     *
+     * <p>
      * If the channel is already subscribed, the channel handler will be overwritten.
      *
      * @param handler The handler which is responsible for the messages received in that channel.
@@ -65,7 +65,7 @@ public interface Subscriber {
     /**
      * Subscribes a channel and sets the multi handler for it.
      * The class must have a Channel annotation with the channel the class is responsible for.
-     *
+     * <p>
      * If the channel is already subscribed, the multi channel handler will be overwritten.
      *
      * @param handler The handler which is responsible for the messages received in that channel and the key value method matches.

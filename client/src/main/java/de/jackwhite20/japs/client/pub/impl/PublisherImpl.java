@@ -148,14 +148,14 @@ public class PublisherImpl implements Publisher {
     @Override
     public void disconnect(boolean force) {
 
-        if(connected) {
+        if (connected) {
             // We are not connected anymore
             connected = false;
 
             // Close the socket channel
             closeSocket();
 
-            if(!force) {
+            if (!force) {
                 // Try to reconnect
                 reconnect();
             } else {
@@ -182,11 +182,11 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, String subscriberName, JSONObject jsonObject) {
 
-        if(channel == null || channel.isEmpty()) {
+        if (channel == null || channel.isEmpty()) {
             throw new IllegalArgumentException("channel cannot be null or empty");
         }
 
-        if(jsonObject == null || jsonObject.length() == 0) {
+        if (jsonObject == null || jsonObject.length() == 0) {
             throw new IllegalArgumentException("jsonObject cannot be null or empty");
         }
 
@@ -199,7 +199,7 @@ public class PublisherImpl implements Publisher {
         jsonObject.put("op", 2);
         jsonObject.put("ch", channel);
         // Set the subscriber name if it is not null
-        if(subscriberName != null) {
+        if (subscriberName != null) {
             jsonObject.put("su", subscriberName);
         }
 
@@ -240,7 +240,7 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, String subscriberName, String json) {
 
-        if(json == null || json.isEmpty()) {
+        if (json == null || json.isEmpty()) {
             throw new IllegalArgumentException("json cannot be null or empty");
         }
 
@@ -269,7 +269,7 @@ public class PublisherImpl implements Publisher {
     @Override
     public void publish(String channel, String subscriberName, Object object) {
 
-        if(object == null) {
+        if (object == null) {
             throw new IllegalArgumentException("object cannot be null");
         }
 
@@ -324,7 +324,7 @@ public class PublisherImpl implements Publisher {
 
             while (!connect(connectTo.host(), connectTo.port())) {
 
-                if(reconnectPause > 0) {
+                if (reconnectPause > 0) {
                     try {
                         Thread.sleep(reconnectPause);
                     } catch (InterruptedException e) {
@@ -333,11 +333,11 @@ public class PublisherImpl implements Publisher {
                 }
 
                 clusterServerIndex++;
-                if(reconnectPause < 1000) {
+                if (reconnectPause < 1000) {
                     reconnectPause += 100;
                 }
 
-                if(clusterServers.size() == clusterServerIndex) {
+                if (clusterServers.size() == clusterServerIndex) {
                     clusterServerIndex = 0;
                 }
 

@@ -48,8 +48,8 @@ public final class SubscriberFactory {
     /**
      * Creates a new subscriber instance which connects to the given host and port.
      *
-     * @param host The host to connect to.
-     * @param port The port to connect to.
+     * @param host           The host to connect to.
+     * @param port           The port to connect to.
      * @param subscriberName The subscriber name.
      * @return A new instance of a subscriber implementation.
      */

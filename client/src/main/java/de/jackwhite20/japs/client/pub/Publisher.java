@@ -36,7 +36,7 @@ public interface Publisher {
     /**
      * Publishes the given JSONObject to the given channel.
      *
-     * @param channel The channel.
+     * @param channel    The channel.
      * @param jsonObject The json as JSONObject.
      */
     void publish(String channel, JSONObject jsonObject);
@@ -44,7 +44,7 @@ public interface Publisher {
     /**
      * Publishes the given JSONObject's to the given channel.
      *
-     * @param channel The channel.
+     * @param channel     The channel.
      * @param jsonObjects The JSONObject's.
      */
     void publishAll(String channel, JSONObject... jsonObjects);
@@ -52,18 +52,18 @@ public interface Publisher {
     /**
      * Publishes the given JSONObject to the given channel and subscriber.
      *
-     * @param channel The channel.
+     * @param channel        The channel.
      * @param subscriberName The name of the subscriber to publish to.
-     * @param jsonObject The json as JSONObject.
+     * @param jsonObject     The json as JSONObject.
      */
     void publish(String channel, String subscriberName, JSONObject jsonObject);
 
     /**
      * Publishes the given JSONObject's to the given channel and subscriber.
      *
-     * @param channel The channel.
+     * @param channel        The channel.
      * @param subscriberName The name of the subscriber to publish to.
-     * @param jsonObjects The JSONObject's.
+     * @param jsonObjects    The JSONObject's.
      */
     void publishAll(String channel, String subscriberName, JSONObject... jsonObjects);
 
@@ -71,15 +71,15 @@ public interface Publisher {
      * Publishes the given json to the given channel.
      *
      * @param channel The channel.
-     * @param json The raw json string.
+     * @param json    The raw json string.
      */
     void publish(String channel, String json);
 
     /**
      * Publishes the given json to the given channel and subscriber.
      *
-     * @param channel The channel.
-     * @param json The raw json string.
+     * @param channel        The channel.
+     * @param json           The raw json string.
      * @param subscriberName The name of the subscriber to publish to.
      */
     void publish(String channel, String json, String subscriberName);
@@ -89,7 +89,7 @@ public interface Publisher {
      * The object will be serialized with gson to a json string.
      *
      * @param channel The channel.
-     * @param object The object which can be serialized with gson.
+     * @param object  The object which can be serialized with gson.
      */
     void publish(String channel, Object object);
 
@@ -106,9 +106,9 @@ public interface Publisher {
      * Publishes the given object as json string to the given channel.
      * The object will be serialized with gson to a json string.
      *
-     * @param channel The channel.
+     * @param channel        The channel.
      * @param subscriberName The name of the subscriber to publish to.
-     * @param object The object which can be serialized with gson.
+     * @param object         The object which can be serialized with gson.
      */
     void publish(String channel, String subscriberName, Object object);
 
@@ -116,9 +116,9 @@ public interface Publisher {
      * Publishes the given objects as json string to the given channel.
      * The objects will be serialized with gson to a json string.
      *
-     * @param channel The channel.
+     * @param channel        The channel.
      * @param subscriberName The name of the subscriber to publish to.
-     * @param objects The objects which can be serialized with gson.
+     * @param objects        The objects which can be serialized with gson.
      */
     void publishAll(String channel, String subscriberName, Object... objects);
 

@@ -42,7 +42,7 @@ public class ConsoleFormatter extends Formatter {
         builder.append(formatMessage(record));
         //noinspection ThrowableResultOfMethodCallIgnored
         Throwable throwable = record.getThrown();
-        if(throwable != null) {
+        if (throwable != null) {
             StringWriter sw = new StringWriter();
             throwable.printStackTrace(new PrintWriter(sw));
             String exceptionString = sw.toString();

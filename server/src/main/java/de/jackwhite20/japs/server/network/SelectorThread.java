@@ -67,7 +67,7 @@ public class SelectorThread implements Runnable {
 
         running = false;
 
-        if(selector != null) {
+        if (selector != null) {
             try {
                 selector.close();
             } catch (IOException e) {
@@ -98,25 +98,25 @@ public class SelectorThread implements Runnable {
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> keyIterator = keys.iterator();
 
-                while(keyIterator.hasNext()) {
+                while (keyIterator.hasNext()) {
                     SelectionKey key = keyIterator.next();
 
                     keyIterator.remove();
 
                     SelectableChannel selectableChannel = key.channel();
 
-                    if(!key.isValid())
+                    if (!key.isValid())
                         continue;
 
                     if (key.isReadable()) {
                         Connection connection = (Connection) key.attachment();
 
-                        if(connection == null)
+                        if (connection == null)
                             continue;
 
-                        if(selectableChannel instanceof DatagramChannel) {
+                        if (selectableChannel instanceof DatagramChannel) {
                             // TODO: 06.04.2016
-                        }else {
+                        } else {
                             connection.read();
                         }
                     }

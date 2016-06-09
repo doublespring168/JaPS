@@ -93,13 +93,13 @@ public class Connection {
 
     public void close() {
 
-        if(!connected) {
+        if (!connected) {
             return;
         }
 
         connected = false;
 
-        if(socketChannel != null) {
+        if (socketChannel != null) {
             try {
                 socketChannel.close();
             } catch (IOException e) {
@@ -120,13 +120,13 @@ public class Connection {
             int read = socketChannel.read(byteBuffer);
 
             // Read is -1 if connection is closed
-            if(read == -1) {
+            if (read == -1) {
                 close();
                 return;
             }
 
             // Resize buffer and read the rest if the buffer was too small
-            if(byteBuffer.remaining() == 0) {
+            if (byteBuffer.remaining() == 0) {
                 ByteBuffer temp = ByteBuffer.allocate(byteBuffer.capacity() * BUFFER_GROW_FACTOR);
                 byteBuffer.flip();
                 temp.put(byteBuffer);
@@ -163,7 +163,7 @@ public class Connection {
 
                 JSONObject jsonObject = new JSONObject(json);
 
-                if(jsonObject.isNull("op")) {
+                if (jsonObject.isNull("op")) {
                     break;
                 }
 
@@ -171,7 +171,7 @@ public class Connection {
 
                 switch (op) {
                     case 2:
-                        if(!jsonObject.has("su")) {
+                        if (!jsonObject.has("su")) {
                             // Broadcast it to all subscriber
                             server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
                         } else {
@@ -194,10 +194,10 @@ public class Connection {
                     case 3:
                         name = jsonObject.getString("su");
 
-                        LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[] {remoteAddress.toString(), name});
+                        LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[]{remoteAddress.toString(), name});
                         break;
                     default:
-                        LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[] {remoteAddress.toString(), op});
+                        LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[]{remoteAddress.toString(), op});
                 }
             }
 
