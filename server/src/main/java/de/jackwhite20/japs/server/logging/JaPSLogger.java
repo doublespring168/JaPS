@@ -21,6 +21,7 @@ package de.jackwhite20.japs.server.logging;
 
 import jline.console.ConsoleReader;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.*;
 
@@ -36,7 +37,13 @@ public class JaPSLogger extends Logger {
         setLevel(Level.INFO);
 
         try {
-            FileHandler fileHandler = new FileHandler("japs.log", 1400000, 4, true);
+            File logDir = new File("logs");
+            if (!logDir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                logDir.mkdir();
+            }
+
+            FileHandler fileHandler = new FileHandler("logs" + File.separator + "japs.log", 1400000, 4, false);
             fileHandler.setFormatter(formatter);
             addHandler(fileHandler);
 

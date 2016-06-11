@@ -19,9 +19,9 @@
 
 package de.jackwhite20.japs.server.network;
 
+import de.jackwhite20.japs.server.JaPS;
+
 import java.io.IOException;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  */
 public class SelectorThread implements Runnable {
 
-    private static final Logger LOGGER = Logger.getLogger("JaPS");
+    private static final Logger LOGGER = JaPS.getLogger();
 
     private boolean running;
 
@@ -50,7 +50,7 @@ public class SelectorThread implements Runnable {
         this.id = id;
         this.selectorLock = selectorLock;
 
-        LOGGER.log(Level.FINE, "Selector thread {0} started!", id);
+        LOGGER.log(Level.INFO, "Selector thread {0} started!", id);
     }
 
     public int id() {
@@ -92,8 +92,9 @@ public class SelectorThread implements Runnable {
                 selectorLock.lock();
                 selectorLock.unlock();
 
-                if (selector.select() == 0)
+                if (selector.select() == 0) {
                     continue;
+                }
 
                 Set<SelectionKey> keys = selector.selectedKeys();
                 Iterator<SelectionKey> keyIterator = keys.iterator();
@@ -103,22 +104,18 @@ public class SelectorThread implements Runnable {
 
                     keyIterator.remove();
 
-                    SelectableChannel selectableChannel = key.channel();
-
-                    if (!key.isValid())
+                    if (!key.isValid()) {
                         continue;
+                    }
 
                     if (key.isReadable()) {
                         Connection connection = (Connection) key.attachment();
 
-                        if (connection == null)
+                        if (connection == null) {
                             continue;
-
-                        if (selectableChannel instanceof DatagramChannel) {
-                            // TODO: 06.04.2016
-                        } else {
-                            connection.read();
                         }
+
+                        connection.read();
                     }
                 }
             } catch (Exception e) {

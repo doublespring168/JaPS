@@ -79,10 +79,12 @@ public class JaPS {
             e.printStackTrace();
         }
 
+        // Setup logging system
         logger = new JaPSLogger(consoleReader);
         System.setErr(new PrintStream(new LoggingOutputStream(logger, Level.SEVERE), true));
         System.setOut(new PrintStream(new LoggingOutputStream(logger, Level.INFO), true));
 
+        // Register command
         commandManager = new CommandManager();
         commandManager.addCommand(new HelpCommand("help", new String[]{"h"}, "Show this output"));
         commandManager.addCommand(new SubCommand("sub", new String[]{"s", "subscribe"}, "Subscribe a channel and view it's data passing"));
@@ -105,7 +107,7 @@ public class JaPS {
             line = consoleReader.readLine("> ");
 
             if (!line.isEmpty()) {
-                String[] split = ARGS_SPLIT.split(line, -1);
+                String[] split = ARGS_SPLIT.split(line);
 
                 if (split.length == 0) {
                     continue;
@@ -113,9 +115,12 @@ public class JaPS {
 
                 String commandName = split[0].toLowerCase();
 
+                // Try to get the command with the name
                 Command command = commandManager.findCommand(commandName);
 
                 if (command != null) {
+                    logger.log(Level.INFO, "Executing command: " + command.getName());
+
                     String[] cmdArgs = Arrays.copyOfRange(split, 1, split.length);
                     command.execute(cmdArgs);
                 } else {
