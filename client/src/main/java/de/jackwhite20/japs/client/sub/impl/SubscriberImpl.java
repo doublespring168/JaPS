@@ -248,6 +248,12 @@ public class SubscriberImpl implements Subscriber, Runnable {
     }
 
     @Override
+    public void disconnect() {
+
+        disconnect(true);
+    }
+
+    @Override
     public boolean hasSubscription(String channel) {
 
         return handlers.containsKey(channel) || multiHandlers.containsKey(channel);

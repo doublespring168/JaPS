@@ -85,6 +85,8 @@ asyncPublisher.publish("test", fooBar);
 
 // True because we want to force the disconnect so that it will not try to reconnect to the cluster
 publisher.disconnect(true);
+// Is the same as
+//publisher.disconnect();
 ```
 
 _Subscriber:_
@@ -96,6 +98,8 @@ subscriber.subscribe(GsonChannelHandler.class);
 
 // True because we want to force the disconnect so that it will not try to reconnect to the cluster
 subscriber.disconnect(true);
+// Is the same as
+//subscriber.disconnect();
 ```
 
 _Subscriber with defined name:_

@@ -27,11 +27,19 @@ import org.json.JSONObject;
 public interface Publisher {
 
     /**
-     * Disconnects the publisher
+     * Disconnects the publisher.
      *
      * @param force If true, the publisher will not try to reconnect
      */
     void disconnect(boolean force);
+
+
+    /**
+     * Disconnects the publisher without trying to reconnect.
+     *
+     * Same as invoking disconnect(true).
+     */
+    void disconnect();
 
     /**
      * Publishes the given JSONObject to the given channel.

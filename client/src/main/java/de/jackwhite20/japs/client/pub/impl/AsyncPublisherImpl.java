@@ -47,6 +47,12 @@ public class AsyncPublisherImpl implements AsyncPublisher {
     }
 
     @Override
+    public void disconnect() {
+
+        disconnect(true);
+    }
+
+    @Override
     public void publish(String channel, JSONObject jsonObject) {
 
         executorService.execute(() -> publisher.publish(channel, jsonObject));

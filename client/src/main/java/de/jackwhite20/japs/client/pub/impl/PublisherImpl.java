@@ -166,6 +166,12 @@ public class PublisherImpl implements Publisher {
     }
 
     @Override
+    public void disconnect() {
+
+        disconnect(true);
+    }
+
+    @Override
     public void publish(String channel, JSONObject jsonObject) {
 
         publish(channel, null, jsonObject);
