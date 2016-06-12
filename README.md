@@ -46,6 +46,8 @@ _Client:_
 
 # Quick start
 
+If you want to use the javadoc you can browse it [here](https://jackwhite20.github.io/JaPS/doc/).
+
 _Publisher:_
 ```java
 Publisher publisher = PublisherFactory.create("localhost", 1337);
