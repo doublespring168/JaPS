@@ -159,7 +159,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private void reconnect() {
 
-        if(reconnectPause > 0) {
+        if (reconnectPause > 0) {
             try {
                 Thread.sleep(reconnectPause);
             } catch (InterruptedException e) {
@@ -168,11 +168,11 @@ public class SubscriberImpl implements Subscriber, Runnable {
         }
 
         clusterServerIndex++;
-        if(reconnectPause < 1000) {
+        if (reconnectPause < 1000) {
             reconnectPause += 100;
         }
 
-        if(clusterServers.size() == clusterServerIndex) {
+        if (clusterServers.size() == clusterServerIndex) {
             clusterServerIndex = 0;
         }
 
@@ -182,7 +182,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private void closeSocket() {
 
-        if(selector != null) {
+        if (selector != null) {
             try {
                 selector.close();
             } catch (IOException e) {
@@ -190,7 +190,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             }
         }
 
-        if(socketChannel != null) {
+        if (socketChannel != null) {
             try {
                 socketChannel.close();
             } catch (IOException e) {
@@ -219,13 +219,13 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     private String getChannelFromAnnotation(Class<?> clazz) {
 
-        if(!clazz.isAnnotationPresent(Channel.class)) {
+        if (!clazz.isAnnotationPresent(Channel.class)) {
             throw new IllegalArgumentException("the handler class " + clazz.getSimpleName() + " has no 'Channel' annotation");
         }
 
         String channel = clazz.getAnnotation(Channel.class).value();
 
-        if(channel.isEmpty()) {
+        if (channel.isEmpty()) {
             throw new IllegalStateException("value of the 'Channel' annotation of class " + clazz.getSimpleName() + " is empty");
         }
 
@@ -235,16 +235,22 @@ public class SubscriberImpl implements Subscriber, Runnable {
     @Override
     public void disconnect(boolean force) {
 
-        if(connected) {
+        if (connected) {
             connected = false;
 
             // Close selector and the socket channel
             closeSocket();
 
-            if(!force) {
+            if (!force) {
                 reconnect();
             }
         }
+    }
+
+    @Override
+    public void disconnect() {
+
+        disconnect(true);
     }
 
     @Override
@@ -290,7 +296,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
             Object object = handler.newInstance();
             for (Method method : object.getClass().getDeclaredMethods()) {
-                if(method.getParameterCount() == 1) {
+                if (method.getParameterCount() == 1) {
                     if (method.isAnnotationPresent(Key.class) && method.isAnnotationPresent(Value.class)) {
                         entries.add(new MultiHandlerInfo.Entry(method.getAnnotation(Key.class), method.getAnnotation(Value.class), method.getParameterTypes()[0], (method.getParameterTypes()[0].getSimpleName().equals("JSONObject")) ? ClassType.JSON : ClassType.GSON, method));
                     }
@@ -313,7 +319,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
     public void unsubscribe(String channel) {
 
         // Only send unsubscribe if the channel is subscribed
-        if(handlers.containsKey(channel) || multiHandlers.containsKey(channel)) {
+        if (handlers.containsKey(channel) || multiHandlers.containsKey(channel)) {
             handlers.remove(channel);
             multiHandlers.remove(channel);
 
@@ -361,10 +367,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
                         continue;
                     }
 
-                    if(key.isReadable()) {
+                    if (key.isReadable()) {
                         int read = socketChannel.read(byteBuffer);
 
-                        if(read == -1) {
+                        if (read == -1) {
                             disconnect(false);
                             return;
                         }
@@ -393,29 +399,29 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
                             String channel = ((String) jsonObject.remove("ch"));
 
-                            if(channel == null || channel.isEmpty()) {
+                            if (channel == null || channel.isEmpty()) {
                                 continue;
                             }
 
                             HandlerInfo handlerInfo = handlers.get(channel);
 
-                            if(handlerInfo != null) {
+                            if (handlerInfo != null) {
                                 if (handlerInfo.classType() == ClassType.JSON) {
                                     handlerInfo.messageHandler().onMessage(channel, jsonObject);
                                 } else {
                                     handlerInfo.messageHandler().onMessage(channel, gson.fromJson(jsonObject.toString(), handlerInfo.clazz()));
                                 }
-                            }else {
+                            } else {
                                 MultiHandlerInfo multiHandlerInfo = multiHandlers.get(channel);
 
-                                if(multiHandlerInfo != null) {
+                                if (multiHandlerInfo != null) {
                                     for (MultiHandlerInfo.Entry entry : multiHandlerInfo.entries()) {
                                         if (!jsonObject.isNull(entry.key().value())) {
                                             if (jsonObject.get(entry.key().value()).equals(entry.value().value())) {
                                                 // Remove matched key value pair
                                                 jsonObject.remove(entry.key().value());
 
-                                                if(entry.classType() == ClassType.JSON) {
+                                                if (entry.classType() == ClassType.JSON) {
                                                     // Invoke the matching method
                                                     entry.method().invoke(multiHandlerInfo.object(), jsonObject);
                                                 } else {

@@ -40,7 +40,7 @@ public abstract class Command {
     public boolean isValidAlias(String cmd) {
 
         for (String alias : aliases) {
-            if(alias.equals(cmd))
+            if (alias.equals(cmd))
                 return true;
         }
 

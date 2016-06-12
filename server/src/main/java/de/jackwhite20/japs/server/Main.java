@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  * Created by JackWhite20 on 05.05.2016.
  */
 public class Main {
-    
+
     public static void main(String[] args) throws Exception {
 
         Config config = null;
@@ -59,7 +59,7 @@ public class Main {
 
                 List<Config.ClusterServer> clusterServers = new ArrayList<>();
 
-                if(commandLine.hasOption("c")) {
+                if (commandLine.hasOption("c")) {
                     for (String c : commandLine.getOptionValues("c")) {
                         String[] splitted = c.split(":");
                         clusterServers.add(new Config.ClusterServer(splitted[0], Integer.parseInt(splitted[1])));
@@ -74,7 +74,7 @@ public class Main {
             }
         } else {
             File configFile = new File("config.json");
-            if(!configFile.exists()) {
+            if (!configFile.exists()) {
                 try {
                     Files.copy(JaPS.class.getClassLoader().getResourceAsStream("config.json"), configFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
@@ -91,7 +91,7 @@ public class Main {
             }
         }
 
-        if(config == null) {
+        if (config == null) {
             System.err.println("Failed to create a Config!");
             System.err.println("Please check the program parameters or the 'config.json' file!");
         } else {

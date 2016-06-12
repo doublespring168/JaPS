@@ -88,7 +88,7 @@ public class JaPSServer implements Runnable {
         start();
 
         // Check if there are cluster servers to avoid unnecessary logic execution
-        if(cluster.size() > 0 ) {
+        if (cluster.size() > 0) {
             // TODO: 05.05.2016 Executor service
             new Thread(() -> {
                 while (cluster.size() > 0) {
@@ -106,7 +106,7 @@ public class JaPSServer implements Runnable {
 
                         try {
                             Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
-                            if(publisher.connected()) {
+                            if (publisher.connected()) {
                                 clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
 
                                 clusterServerIterator.remove();
@@ -172,7 +172,7 @@ public class JaPSServer implements Runnable {
 
             selectorRoundRobin = new RoundRobinList<>(selectorThreads);
 
-            LOGGER.log(Level.INFO, "JaPS server started on {0}:{1}", new Object[] {host, String.valueOf(port)});
+            LOGGER.log(Level.INFO, "JaPS server started on {0}:{1}", new Object[]{host, String.valueOf(port)});
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -182,7 +182,7 @@ public class JaPSServer implements Runnable {
 
         LOGGER.info("Server will stop");
 
-        if(serverSocketChannel != null) {
+        if (serverSocketChannel != null) {
             try {
                 serverSocketChannel.close();
             } catch (IOException e) {
@@ -190,7 +190,7 @@ public class JaPSServer implements Runnable {
             }
         }
 
-        if(selector != null) {
+        if (selector != null) {
             try {
                 selector.close();
             } catch (IOException e) {
@@ -209,21 +209,21 @@ public class JaPSServer implements Runnable {
 
     public void subscribeChannel(String channel, Connection connection) {
 
-        if(channelSessions.containsKey(channel)) {
+        if (channelSessions.containsKey(channel)) {
             channelSessions.get(channel).add(connection);
         } else {
             channelSessions.put(channel, new ArrayList<>(Collections.singletonList(connection)));
         }
 
-        LOGGER.log(Level.FINE, "[{0}] Channel subscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
+        LOGGER.log(Level.FINE, "[{0}] Channel subscribed: {1}", new Object[]{connection.remoteAddress().toString(), channel});
     }
 
     public void unsubscribeChannel(String channel, Connection connection) {
 
-        if(channelSessions.containsKey(channel)) {
+        if (channelSessions.containsKey(channel)) {
             channelSessions.get(channel).remove(connection);
 
-            LOGGER.log(Level.FINE, "[{0}] Channel unsubscribed: {1}", new Object[] {connection.remoteAddress().toString(), channel});
+            LOGGER.log(Level.FINE, "[{0}] Channel unsubscribed: {1}", new Object[]{connection.remoteAddress().toString(), channel});
         }
     }
 
@@ -233,14 +233,14 @@ public class JaPSServer implements Runnable {
             channelSessions.get(s).remove(connection);
         }
 
-        if(!connection.channels().isEmpty()) {
-            LOGGER.log(Level.FINE, "[{0}] Channels unsubscribed from {1}: {2}", new Object[] {connection.remoteAddress().toString(), connection.name(), String.join(", ", connection.channels())});
+        if (!connection.channels().isEmpty()) {
+            LOGGER.log(Level.FINE, "[{0}] Channels unsubscribed from {1}: {2}", new Object[]{connection.remoteAddress().toString(), connection.name(), String.join(", ", connection.channels())});
         }
     }
 
     public void broadcast(Connection con, String channel, String data) {
 
-        if(channelSessions.containsKey(channel)) {
+        if (channelSessions.containsKey(channel)) {
             for (Connection connection : channelSessions.get(channel)) {
                 connection.send(data);
             }
@@ -253,7 +253,7 @@ public class JaPSServer implements Runnable {
 
         String clusterData = data.toString();
 
-        if(channelSessions.containsKey(channel)) {
+        if (channelSessions.containsKey(channel)) {
             // Remove the subscriber name to save bandwidth and remove the unneeded key
             data.remove("su");
 
@@ -270,7 +270,7 @@ public class JaPSServer implements Runnable {
 
     private void clusterBroadcast(Connection con, String channel, String data) {
 
-        if(clusterPublisher.size() > 0) {
+        if (clusterPublisher.size() > 0) {
             // Publish it to all clusters but exclude this server
             clusterPublisher.stream().filter(cl -> con.port() != cl.port && !con.host().equals(cl.host) && cl.connected()).forEach(cl -> cl.publisher.publish(channel, data));
         }
@@ -303,15 +303,15 @@ public class JaPSServer implements Runnable {
 
                     keyIterator.remove();
 
-                    if(!key.isValid()) {
+                    if (!key.isValid()) {
                         continue;
                     }
 
-                    if(key.isAcceptable()) {
+                    if (key.isAcceptable()) {
                         // Accept the socket channel
                         SocketChannel socketChannel = serverSocketChannel.accept();
 
-                        if(socketChannel == null) {
+                        if (socketChannel == null) {
                             continue;
                         }
 
@@ -336,7 +336,7 @@ public class JaPSServer implements Runnable {
                             // Register OP_READ and attach the connection object to it
                             socketChannel.register(sel, SelectionKey.OP_READ, connection);
 
-                            LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[] {socketChannel.getRemoteAddress(), nextSelector.id()});
+                            LOGGER.log(Level.FINE, "[{0}] New connection, assigning selector {1}", new Object[]{socketChannel.getRemoteAddress(), nextSelector.id()});
                         } finally {
                             // Unlock the lock
                             releaseLock();

@@ -118,7 +118,7 @@ public class PublisherTest {
             e.printStackTrace();
         }
 
-        subscriber.disconnect(true);
-        publisher.disconnect(true);
+        subscriber.disconnect();
+        publisher.disconnect();
     }
 }

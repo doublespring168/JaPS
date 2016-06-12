@@ -27,12 +27,19 @@ import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
 public interface Subscriber {
 
     /**
-     * Disconnects the publisher.
-     * If you are not forcing a disconnect, this method will block until the reconnect was successful.
+     * Disconnects the subscriber.
+     * If you are not forcing a disconnect, this method will block until the reconnect is successful.
      *
      * @param force If true, the subscriber will not try to reconnect
      */
     void disconnect(boolean force);
+
+    /**
+     * Disconnects the subscriber without trying to reconnect.
+     *
+     * Same as invoking disconnect(true).
+     */
+    void disconnect();
 
     /**
      * Checks if the given channel is subscribed.
@@ -44,7 +51,7 @@ public interface Subscriber {
 
     /**
      * Subscribes a channel and sets the handler for it.
-     *
+     * <p>
      * If the channel is already subscribed, the channel handler will be overwritten.
      *
      * @param channel The channel to subscribe to.
@@ -55,7 +62,7 @@ public interface Subscriber {
     /**
      * Subscribes a channel and sets the handler for it.
      * The class must have a Channel annotation with the channel the class is responsible for.
-     *
+     * <p>
      * If the channel is already subscribed, the channel handler will be overwritten.
      *
      * @param handler The handler which is responsible for the messages received in that channel.
@@ -65,7 +72,7 @@ public interface Subscriber {
     /**
      * Subscribes a channel and sets the multi handler for it.
      * The class must have a Channel annotation with the channel the class is responsible for.
-     *
+     * <p>
      * If the channel is already subscribed, the multi channel handler will be overwritten.
      *
      * @param handler The handler which is responsible for the messages received in that channel and the key value method matches.

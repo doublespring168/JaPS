@@ -33,10 +33,12 @@ public class HelpCommand extends Command {
 
     @Override
     public boolean execute(String[] args) {
+
         JaPS.getLogger().info("Available Commands:");
         for (Command command : JaPS.getCommandManager().getCommands()) {
             JaPS.getLogger().info(command.getName() + " [" + String.join(", ", command.getAliases()) + "] - " + command.getDescription());
         }
+
         return true;
     }
 }
