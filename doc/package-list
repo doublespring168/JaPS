@@ -1,0 +1,7 @@
+de.jackwhite20.japs.client.pub
+de.jackwhite20.japs.client.pub.impl
+de.jackwhite20.japs.client.sub
+de.jackwhite20.japs.client.sub.impl
+de.jackwhite20.japs.client.sub.impl.handler
+de.jackwhite20.japs.client.sub.impl.handler.annotation
+de.jackwhite20.japs.client.util
