@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Japs by JackWhite20</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Japs</h1>
+      <h2 class="project-tagline">JaPS is a robust and lightweight Java Pub/Sub library which uses JSON.</h2>
+      <a href="https://github.com/JackWhite20/JaPS" class="btn">View on GitHub</a>
+      <a href="https://github.com/JackWhite20/JaPS/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/JackWhite20/JaPS/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="japs" class="anchor" href="#japs" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>JaPS</h1>
+
+<p>I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well,
+therefore I have decided to publish it here on GitHub.</p>
+
+<h1>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Features</h1>
+
+<ul>
+<li>channels</li>
+<li>channel handler (json object and custom object)</li>
+<li>key-value based handler method invocation</li>
+<li>subscriber may have custom names</li>
+<li>publish to specific subscriber</li>
+<li>custom object serialization with <a href="https://github.com/google/gson">gson</a>
+</li>
+<li>clean API</li>
+<li>extensive API</li>
+<li>low cpu and memory consumption</li>
+<li>lightweight</li>
+<li>scalable</li>
+<li>simple JSON</li>
+<li>easy to implement in other languages (PHP publisher example at to bottom)</li>
+<li>async publishing via the AsyncPublisher</li>
+<li>full multi-core utilization and configurable number of threads</li>
+<li>combine multiple JaPS server to a cluster</li>
+<li>cluster failover with auto reconnect and sync</li>
+<li>simple but powerful NIO implementation</li>
+<li>thousands of publisher and subscriber concurrently</li>
+<li>hundreds of new connections per second</li>
+</ul>
+
+<h1>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h1>
+
+<ul>
+<li>Install <a href="http://maven.apache.org/download.cgi">Maven 3</a>
+</li>
+<li>Clone/Download this repo</li>
+<li>Install it with: <code>mvn clean install</code>
+</li>
+</ul>
+
+<p><strong>Maven dependencies</strong></p>
+
+<p><em>Client:</em></p>
+
+<div class="highlight highlight-text-xml"><pre>&lt;<span class="pl-ent">dependency</span>&gt;
+    &lt;<span class="pl-ent">groupId</span>&gt;de.jackwhite20&lt;/<span class="pl-ent">groupId</span>&gt;
+    &lt;<span class="pl-ent">artifactId</span>&gt;japs-client&lt;/<span class="pl-ent">artifactId</span>&gt;
+    &lt;<span class="pl-ent">version</span>&gt;0.1-SNAPSHOT&lt;/<span class="pl-ent">version</span>&gt;
+&lt;/<span class="pl-ent">dependency</span>&gt;</pre></div>
+
+<h1>
+<a id="quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quick start</h1>
+
+<p><em>Publisher:</em></p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-smi">Publisher</span> publisher <span class="pl-k">=</span> <span class="pl-smi">PublisherFactory</span><span class="pl-k">.</span>create(<span class="pl-s"><span class="pl-pds">"</span>localhost<span class="pl-pds">"</span></span>, <span class="pl-c1">1337</span>);
+
+<span class="pl-smi">JSONObject</span> fooBar <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-smi">JSONObject</span>();
+fooBar<span class="pl-k">.</span>put(<span class="pl-s"><span class="pl-pds">"</span>foo<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>);
+publisher<span class="pl-k">.</span>publish(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, fooBar);
+
+<span class="pl-c">// Both will work</span>
+publisher<span class="pl-k">.</span>publish(<span class="pl-s"><span class="pl-pds">"</span>gson<span class="pl-pds">"</span></span>, fooBar);
+publisher<span class="pl-k">.</span>publish(<span class="pl-s"><span class="pl-pds">"</span>gson<span class="pl-pds">"</span></span>, <span class="pl-k">new</span> <span class="pl-smi">FooBar</span>(<span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>));
+
+<span class="pl-smi">JSONObject</span> backendJson <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-smi">JSONObject</span>();
+backendJson<span class="pl-k">.</span>put(<span class="pl-s"><span class="pl-pds">"</span>role<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>update<span class="pl-pds">"</span></span>);
+backendJson<span class="pl-k">.</span>put(<span class="pl-s"><span class="pl-pds">"</span>ping<span class="pl-pds">"</span></span>, <span class="pl-c1">5</span>);
+publisher<span class="pl-k">.</span>publish(<span class="pl-s"><span class="pl-pds">"</span>backend<span class="pl-pds">"</span></span>, backendJson);
+
+<span class="pl-c">// Publish to a channel and a specific subscriber</span>
+publisher<span class="pl-k">.</span>publish(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>some-subscriber<span class="pl-pds">"</span></span>, fooBar);
+
+<span class="pl-c">// Publish multiple json objects to a channel</span>
+publisher<span class="pl-k">.</span>publishAll(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, jsonObject, <span class="pl-k">new</span> <span class="pl-smi">JSONObject</span>()<span class="pl-k">.</span>put(<span class="pl-s"><span class="pl-pds">"</span>foo<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>second<span class="pl-pds">"</span></span>));
+
+<span class="pl-c">// Publish multiple json objects to a channel and a specific subscriber</span>
+publisher<span class="pl-k">.</span>publishAll(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>some-subscriber<span class="pl-pds">"</span></span>, jsonObject, <span class="pl-k">new</span> <span class="pl-smi">JSONObject</span>()<span class="pl-k">.</span>put(<span class="pl-s"><span class="pl-pds">"</span>foo<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>second<span class="pl-pds">"</span></span>));
+
+<span class="pl-c">// Publish multiple objects to a channel</span>
+publisher<span class="pl-k">.</span>publishAll(<span class="pl-s"><span class="pl-pds">"</span>gson<span class="pl-pds">"</span></span>, <span class="pl-k">new</span> <span class="pl-smi">FooBar</span>(<span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>), <span class="pl-k">new</span> <span class="pl-smi">FooBar</span>(<span class="pl-s"><span class="pl-pds">"</span>bar2<span class="pl-pds">"</span></span>));
+
+<span class="pl-c">// Publish multiple objects to a channel and a specific subscriber</span>
+publisher<span class="pl-k">.</span>publishAll(<span class="pl-s"><span class="pl-pds">"</span>gson<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>some-subscriber<span class="pl-pds">"</span></span>, <span class="pl-k">new</span> <span class="pl-smi">FooBar</span>(<span class="pl-s"><span class="pl-pds">"</span>bar<span class="pl-pds">"</span></span>), <span class="pl-k">new</span> <span class="pl-smi">FooBar</span>(<span class="pl-s"><span class="pl-pds">"</span>bar2<span class="pl-pds">"</span></span>));
+
+<span class="pl-c">// You need to publish something async because you don't want to block your main thread perhaps?</span>
+<span class="pl-c">// Here you go</span>
+<span class="pl-smi">AsyncPublisher</span> asyncPublisher <span class="pl-k">=</span> publisher<span class="pl-k">.</span>async();
+asyncPublisher<span class="pl-k">.</span>publish(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, fooBar);
+
+<span class="pl-c">// True because we want to force the disconnect so that it will not try to reconnect to the cluster</span>
+publisher<span class="pl-k">.</span>disconnect(<span class="pl-c1">true</span>);</pre></div>
+
+<p><em>Subscriber:</em></p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-smi">Subscriber</span> subscriber <span class="pl-k">=</span> <span class="pl-smi">SubscriberFactory</span><span class="pl-k">.</span>create(<span class="pl-s"><span class="pl-pds">"</span>localhost<span class="pl-pds">"</span></span>, <span class="pl-c1">1337</span>);
+subscriber<span class="pl-k">.</span>subscribe(<span class="pl-smi">TestChannelHandler</span><span class="pl-k">.</span>class);
+subscriber<span class="pl-k">.</span>subscribeMulti(<span class="pl-smi">BackendMultiChannelHandler</span><span class="pl-k">.</span>class);
+subscriber<span class="pl-k">.</span>subscribe(<span class="pl-smi">GsonChannelHandler</span><span class="pl-k">.</span>class);
+
+<span class="pl-c">// True because we want to force the disconnect so that it will not try to reconnect to the cluster</span>
+subscriber<span class="pl-k">.</span>disconnect(<span class="pl-c1">true</span>);</pre></div>
+
+<p><em>Subscriber with defined name:</em></p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-smi">Subscriber</span> subscriber <span class="pl-k">=</span> <span class="pl-smi">SubscriberFactory</span><span class="pl-k">.</span>create(<span class="pl-s"><span class="pl-pds">"</span>localhost<span class="pl-pds">"</span></span>, <span class="pl-c1">1337</span>, <span class="pl-s"><span class="pl-pds">"</span>some-subscriber<span class="pl-pds">"</span></span>);
+subscriber<span class="pl-k">.</span>subscribe(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-smi">TestChannelHandler</span><span class="pl-k">.</span>class);</pre></div>
+
+<p><em>TestChannelHandler:</em></p>
+
+<div class="highlight highlight-source-java"><pre>@Channel(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>)
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">TestChannelHandler</span> <span class="pl-k">extends</span> <span class="pl-e">ChannelHandler&lt;<span class="pl-smi">JSONObject</span>&gt;</span> {
+
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">onMessage</span>(<span class="pl-smi">String</span> <span class="pl-v">channel</span>, <span class="pl-smi">JSONObject</span> <span class="pl-v">message</span>) {
+
+        <span class="pl-smi">System</span><span class="pl-k">.</span>out<span class="pl-k">.</span>println(<span class="pl-s"><span class="pl-pds">"</span>TestChannelHandler: foo=<span class="pl-pds">"</span></span> <span class="pl-k">+</span> message<span class="pl-k">.</span>get(<span class="pl-s"><span class="pl-pds">"</span>foo<span class="pl-pds">"</span></span>));
+    }
+}</pre></div>
+
+<p><em>BackendMultiChannelHandler:</em></p>
+
+<div class="highlight highlight-source-java"><pre>@Channel(<span class="pl-s"><span class="pl-pds">"</span>backend<span class="pl-pds">"</span></span>)
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">BackendMultiChannelHandler</span> {
+
+    <span class="pl-k">@Key</span>(<span class="pl-s"><span class="pl-pds">"</span>role<span class="pl-pds">"</span></span>)
+    <span class="pl-k">@Value</span>(<span class="pl-s"><span class="pl-pds">"</span>update<span class="pl-pds">"</span></span>)
+    <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">onBackendRoleUpdate</span>(<span class="pl-smi">JSONObject</span> <span class="pl-v">jsonObject</span>) {
+
+        <span class="pl-c">// Keep in mind that the key (here "role") will be removed before invocation</span>
+        <span class="pl-smi">System</span><span class="pl-k">.</span>out<span class="pl-k">.</span>println(<span class="pl-s"><span class="pl-pds">"</span>BMCH[role=update]: ping=<span class="pl-pds">"</span></span> <span class="pl-k">+</span> jsonObject<span class="pl-k">.</span>getInt(<span class="pl-s"><span class="pl-pds">"</span>ping<span class="pl-pds">"</span></span>));
+    }
+
+    <span class="pl-k">@Key</span>(<span class="pl-s"><span class="pl-pds">"</span>role<span class="pl-pds">"</span></span>)
+    <span class="pl-k">@Value</span>(<span class="pl-s"><span class="pl-pds">"</span>delete<span class="pl-pds">"</span></span>)
+    <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">onBackendRoleDelete</span>(<span class="pl-smi">FooBar</span> <span class="pl-v">fooBar</span>) {
+
+        <span class="pl-smi">System</span><span class="pl-k">.</span>out<span class="pl-k">.</span>println(<span class="pl-s"><span class="pl-pds">"</span>FooBar[role=delete]: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> fooBar<span class="pl-k">.</span>toString());
+    }
+}</pre></div>
+
+<p><em>GsonChannelHandler:</em></p>
+
+<div class="highlight highlight-source-java"><pre>@Channel(<span class="pl-s"><span class="pl-pds">"</span>gson<span class="pl-pds">"</span></span>)
+<span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">GsonChannelHandler</span> <span class="pl-k">extends</span> <span class="pl-e">ChannelHandler&lt;<span class="pl-smi">FooBar</span>&gt;</span> {
+
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">onMessage</span>(<span class="pl-smi">String</span> <span class="pl-v">channel</span>, <span class="pl-smi">FooBar</span> <span class="pl-v">fooBar</span>) {
+
+        <span class="pl-smi">System</span><span class="pl-k">.</span>out<span class="pl-k">.</span>println(<span class="pl-s"><span class="pl-pds">"</span>FooBar class: <span class="pl-pds">"</span></span> <span class="pl-k">+</span> fooBar<span class="pl-k">.</span>toString());
+    }
+}</pre></div>
+
+<p><em>The simple FooBar class:</em></p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">FooBar</span> {
+
+    <span class="pl-k">private</span> <span class="pl-smi">String</span> foo;
+
+    <span class="pl-k">public</span> <span class="pl-en">FooBar</span>(<span class="pl-smi">String</span> <span class="pl-v">foo</span>) {
+
+        <span class="pl-v">this</span><span class="pl-k">.</span>foo <span class="pl-k">=</span> foo;
+    }
+
+    <span class="pl-k">@Override</span>
+    <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">toString</span>() {
+
+        <span class="pl-k">return</span> <span class="pl-s"><span class="pl-pds">"</span>FooBar{<span class="pl-pds">"</span></span> <span class="pl-k">+</span>
+                <span class="pl-s"><span class="pl-pds">"</span>foo='<span class="pl-pds">"</span></span> <span class="pl-k">+</span> foo <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\'</span><span class="pl-pds">'</span></span> <span class="pl-k">+</span>
+                <span class="pl-s"><span class="pl-pds">'</span>}<span class="pl-pds">'</span></span>;
+    }
+}</pre></div>
+
+<h1>
+<a id="php-example" class="anchor" href="#php-example" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PHP example</h1>
+
+<p><em>JaPSPublisher:</em></p>
+
+<div class="highlight highlight-text-html-php"><pre><span class="pl-pse">&lt;?php</span><span class="pl-s1"></span>
+<span class="pl-s1"></span>
+<span class="pl-s1"><span class="pl-k">class</span> <span class="pl-en">JaPSPublisher</span></span>
+<span class="pl-s1">{</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * Host address.</span></span>
+<span class="pl-s1"><span class="pl-c">     *</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@var</span> string The host address.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">private</span> <span class="pl-smi">$host</span>;</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * Host port.</span></span>
+<span class="pl-s1"><span class="pl-c">     *</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@var</span> int The host port.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">private</span> <span class="pl-smi">$port</span>;</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * Socket instance.</span></span>
+<span class="pl-s1"><span class="pl-c">     *</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@var</span> resource The socket instance.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">private</span> <span class="pl-smi">$socket</span>;</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * JaPSPublisher constructor.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * JaPSPublisher constructor.</span></span>
+<span class="pl-s1"><span class="pl-c">     *</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@param</span> string $host The host address to connect to.</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@param</span> int $port The host port to connect to.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">public</span> <span class="pl-k">function</span> <span class="pl-c1">__construct</span>(<span class="pl-smi">$host</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>localhost<span class="pl-pds">"</span></span>, <span class="pl-smi">$port</span> <span class="pl-k">=</span> <span class="pl-c1">1337</span>)</span>
+<span class="pl-s1">    {</span>
+<span class="pl-s1">        <span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">host</span> <span class="pl-k">=</span> <span class="pl-smi">$host</span>;</span>
+<span class="pl-s1">        <span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">port</span> <span class="pl-k">=</span> <span class="pl-smi">$port</span>;</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">socket</span> <span class="pl-k">=</span> <span class="pl-c1">socket_create</span>(<span class="pl-c1">AF_INET</span>, <span class="pl-c1">SOCK_STREAM</span>, <span class="pl-c1">SOL_TCP</span>);</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-smi">$this</span><span class="pl-k">-&gt;</span>connect();</span>
+<span class="pl-s1">    }</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * Connects the internal socket.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">private</span> <span class="pl-k">function</span> <span class="pl-en">connect</span>() {</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-c1">socket_connect</span>(<span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">socket</span>, <span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">host</span>, <span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">port</span>);</span>
+<span class="pl-s1">    }</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * Publish a message to a given channel.</span></span>
+<span class="pl-s1"><span class="pl-c">     *</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@param</span> ($channel) The channel.</span></span>
+<span class="pl-s1"><span class="pl-c">     * <span class="pl-k">@param</span> ($array) The message as an array which will be json encoded.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">public</span> <span class="pl-k">function</span> <span class="pl-en">publish</span>(<span class="pl-smi">$channel</span>, <span class="pl-smi">$array</span>) {</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-smi">$array</span>[<span class="pl-s"><span class="pl-pds">'</span>op<span class="pl-pds">'</span></span>] <span class="pl-k">=</span> <span class="pl-c1">2</span>;</span>
+<span class="pl-s1">        <span class="pl-smi">$array</span>[<span class="pl-s"><span class="pl-pds">'</span>ch<span class="pl-pds">'</span></span>] <span class="pl-k">=</span> <span class="pl-smi">$channel</span>;</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-smi">$json</span> <span class="pl-k">=</span> <span class="pl-c1">json_encode</span>(<span class="pl-smi">$array</span>);</span>
+<span class="pl-s1">        <span class="pl-smi">$jsonLength</span> <span class="pl-k">=</span> <span class="pl-c1">strlen</span>(<span class="pl-smi">$json</span>);</span>
+<span class="pl-s1">        <span class="pl-smi">$length</span> <span class="pl-k">=</span> <span class="pl-c1">pack</span>(<span class="pl-s"><span class="pl-pds">'</span>N<span class="pl-pds">'</span></span>, <span class="pl-smi">$jsonLength</span>);</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-c1">socket_write</span>(<span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">socket</span>, <span class="pl-smi">$length</span> <span class="pl-k">.</span> <span class="pl-smi">$json</span>, <span class="pl-smi">$jsonLength</span> <span class="pl-k">+</span> <span class="pl-c1">4</span>);</span>
+<span class="pl-s1">    }</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">    <span class="pl-c">/**</span></span>
+<span class="pl-s1"><span class="pl-c">     * Closes the publisher.</span></span>
+<span class="pl-s1"><span class="pl-c">     */</span></span>
+<span class="pl-s1">    <span class="pl-k">public</span> <span class="pl-k">function</span> <span class="pl-en">close</span>() {</span>
+<span class="pl-s1"></span>
+<span class="pl-s1">        <span class="pl-c1">socket_close</span>(<span class="pl-smi">$this</span><span class="pl-k">-&gt;</span><span class="pl-smi">socket</span>);</span>
+<span class="pl-s1">    }</span>
+<span class="pl-s1">}</span></pre></div>
+
+<p><em>Example usage:</em></p>
+
+<div class="highlight highlight-text-html-php"><pre><span class="pl-pse">&lt;?php</span><span class="pl-s1"></span>
+<span class="pl-s1"></span>
+<span class="pl-s1"><span class="pl-k">include</span>(<span class="pl-s"><span class="pl-pds">"</span>JaPSPublisher.php<span class="pl-pds">"</span></span>);</span>
+<span class="pl-s1"></span>
+<span class="pl-s1"><span class="pl-smi">$client</span> <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-c1">JaPSPublisher</span>(<span class="pl-s"><span class="pl-pds">"</span>192.168.2.102<span class="pl-pds">"</span></span>, <span class="pl-c1">6000</span>);</span>
+<span class="pl-s1"></span>
+<span class="pl-s1"><span class="pl-smi">$client</span><span class="pl-k">-&gt;</span>publish(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-c1">array</span>(<span class="pl-s"><span class="pl-pds">"</span>foo<span class="pl-pds">"</span></span> <span class="pl-k">=&gt;</span> <span class="pl-s"><span class="pl-pds">"</span>bar1<span class="pl-pds">"</span></span>));</span>
+<span class="pl-s1"><span class="pl-smi">$client</span><span class="pl-k">-&gt;</span>publish(<span class="pl-s"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>, <span class="pl-c1">array</span>(<span class="pl-s"><span class="pl-pds">"</span>foo<span class="pl-pds">"</span></span> <span class="pl-k">=&gt;</span> <span class="pl-s"><span class="pl-pds">"</span>bar2<span class="pl-pds">"</span></span>));</span>
+<span class="pl-s1"></span>
+<span class="pl-s1"><span class="pl-smi">$client</span><span class="pl-k">-&gt;</span>close();</span></pre></div>
+
+<h3>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h3>
+
+<p>Licensed under the GNU General Public License, Version 3.0.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/JackWhite20/JaPS">Japs</a> is maintained by <a href="https://github.com/JackWhite20">JackWhite20</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
