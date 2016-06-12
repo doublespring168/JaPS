@@ -259,6 +259,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
         return handlers.containsKey(channel) || multiHandlers.containsKey(channel);
     }
 
+    @Deprecated
     @Override
     public void subscribe(String channel, Class<? extends ChannelHandler> handler) {
 
@@ -282,6 +283,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
         // Get channel and check the class for annotation etc.
         String channel = getChannelFromAnnotation(handler);
 
+        //noinspection deprecation
         subscribe(channel, handler);
     }
 

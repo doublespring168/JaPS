@@ -89,7 +89,6 @@ public class JaPSServer implements Runnable {
 
         // Check if there are cluster servers to avoid unnecessary logic execution
         if (cluster.size() > 0) {
-            // TODO: 05.05.2016 Executor service
             new Thread(() -> {
                 while (cluster.size() > 0) {
                     LOGGER.info("Trying to connecting to all cluster servers");

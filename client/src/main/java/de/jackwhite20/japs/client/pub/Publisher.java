@@ -33,7 +33,6 @@ public interface Publisher {
      */
     void disconnect(boolean force);
 
-
     /**
      * Disconnects the publisher without trying to reconnect.
      *

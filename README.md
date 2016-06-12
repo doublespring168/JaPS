@@ -105,7 +105,7 @@ subscriber.disconnect(true);
 _Subscriber with defined name:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337, "some-subscriber");
-subscriber.subscribe("test", TestChannelHandler.class);
+subscriber.subscribe(TestChannelHandler.class);
 ```
 
 _TestChannelHandler:_

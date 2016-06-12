@@ -36,6 +36,16 @@ public final class NameGeneratorUtil {
         // no instance
     }
 
+    /**
+     * Generates a name from the name and the id.
+     *
+     * The format looks like:
+     * subscriber-00001
+     *
+     * @param name The base name.
+     * @param id The base id.
+     * @return The new name with the id.
+     */
     public static String generateName(String name, int id) {
 
         String nameString;
