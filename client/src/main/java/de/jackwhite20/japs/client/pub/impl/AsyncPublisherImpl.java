@@ -19,6 +19,7 @@
 
 package de.jackwhite20.japs.client.pub.impl;
 
+import de.jackwhite20.japs.client.cache.PubSubCache;
 import de.jackwhite20.japs.client.pub.AsyncPublisher;
 import de.jackwhite20.japs.client.pub.Publisher;
 import org.json.JSONObject;
@@ -122,6 +123,12 @@ public class AsyncPublisherImpl implements AsyncPublisher {
     public AsyncPublisher async() {
 
         return this;
+    }
+
+    @Override
+    public PubSubCache cache() {
+
+        return publisher.cache();
     }
 
     @Override

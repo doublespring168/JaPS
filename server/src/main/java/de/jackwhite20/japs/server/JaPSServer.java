@@ -21,6 +21,7 @@ package de.jackwhite20.japs.server;
 
 import de.jackwhite20.japs.client.pub.Publisher;
 import de.jackwhite20.japs.client.pub.PublisherFactory;
+import de.jackwhite20.japs.server.cache.JaPSCache;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
 import de.jackwhite20.japs.server.network.SelectorThread;
@@ -76,12 +77,15 @@ public class JaPSServer implements Runnable {
 
     private List<ClusterPublisher> clusterPublisher = new ArrayList<>();
 
-    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<Config.ClusterServer> cluster) {
+    private JaPSCache cache;
+
+    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<Config.ClusterServer> cluster, int cleanupInterval) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
         this.workerThreads = workerThreads;
+        this.cache = new JaPSCache(cleanupInterval);
 
         LOGGER.setLevel((debug) ? Level.FINE : Level.INFO);
 
@@ -135,7 +139,7 @@ public class JaPSServer implements Runnable {
 
     public JaPSServer(Config config) {
 
-        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster());
+        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster(), config.cleanupInterval());
     }
 
     private void start() {
@@ -202,6 +206,9 @@ public class JaPSServer implements Runnable {
 
         // Close the pool
         workerPool.shutdown();
+
+        // Close the cache
+        cache.close();
 
         LOGGER.info("Server stopped!");
     }
@@ -283,6 +290,11 @@ public class JaPSServer implements Runnable {
     private void releaseLock() {
 
         selectorLock.unlock();
+    }
+
+    public JaPSCache cache() {
+
+        return cache;
     }
 
     @Override

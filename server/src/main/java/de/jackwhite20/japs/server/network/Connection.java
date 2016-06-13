@@ -179,6 +179,15 @@ public class Connection {
                             server.broadcastTo(this, jsonObject.getString("ch"), jsonObject, jsonObject.getString("su"));
                         }
                         break;
+                    case 4:
+                        String key = jsonObject.getString("key");
+                        Object value = jsonObject.get("value");
+                        int expire = jsonObject.getInt("expire");
+
+                        LOGGER.log(Level.FINE, "Added cache entry {0}={1} with an expire of {2}", new Object[] {key, value, expire});
+
+                        server.cache().put(key, value, expire);
+                        break;
                     case 0:
                         String channelToRegister = jsonObject.getString("ch");
 

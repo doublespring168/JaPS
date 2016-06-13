@@ -20,6 +20,8 @@
 package de.jackwhite20.japs.client.pub.impl;
 
 import com.google.gson.Gson;
+import de.jackwhite20.japs.client.cache.PubSubCache;
+import de.jackwhite20.japs.client.cache.impl.PubSubCacheImpl;
 import de.jackwhite20.japs.client.pub.AsyncPublisher;
 import de.jackwhite20.japs.client.pub.Publisher;
 import de.jackwhite20.japs.client.util.ClusterServer;
@@ -65,6 +67,8 @@ public class PublisherImpl implements Publisher {
 
     private ConcurrentLinkedQueue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
 
+    private PubSubCache pubSubCache;
+
     public PublisherImpl(String host, int port) {
 
         this(Collections.singletonList(new ClusterServer(host, port)));
@@ -101,6 +105,8 @@ public class PublisherImpl implements Publisher {
             // Disable the Nagle algorithm
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
             socketChannel.connect(new InetSocketAddress(host, port));
+
+            this.pubSubCache = new PubSubCacheImpl(socketChannel);
 
             // We are connected successfully
             connected = true;
@@ -301,6 +307,12 @@ public class PublisherImpl implements Publisher {
     public AsyncPublisher async() {
 
         return asyncPublisher;
+    }
+
+    @Override
+    public PubSubCache cache() {
+
+        return pubSubCache;
     }
 
     private class KeepAliveTask implements Runnable {
