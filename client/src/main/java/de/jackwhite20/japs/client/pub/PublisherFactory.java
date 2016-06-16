@@ -20,7 +20,7 @@
 package de.jackwhite20.japs.client.pub;
 
 import de.jackwhite20.japs.client.pub.impl.PublisherImpl;
-import de.jackwhite20.japs.client.util.ClusterServer;
+import de.jackwhite20.japs.shared.config.ClusterServer;
 
 import java.util.List;
 
@@ -61,8 +61,8 @@ public final class PublisherFactory {
      */
     public static Publisher create(List<ClusterServer> clusterServers) {
 
-        if (clusterServers == null) {
-            throw new IllegalArgumentException("clusterServers cannot be null");
+        if (clusterServers == null || clusterServers.isEmpty()) {
+            throw new IllegalArgumentException("clusterServers cannot be null or empty");
         }
 
         return new PublisherImpl(clusterServers);

@@ -20,7 +20,7 @@
 package de.jackwhite20.japs.client.sub;
 
 import de.jackwhite20.japs.client.sub.impl.SubscriberImpl;
-import de.jackwhite20.japs.client.util.ClusterServer;
+import de.jackwhite20.japs.shared.config.ClusterServer;
 
 import java.util.List;
 
@@ -42,6 +42,14 @@ public final class SubscriberFactory {
      */
     public static Subscriber create(String host, int port) {
 
+        if (host == null || host.isEmpty()) {
+            throw new IllegalArgumentException("host cannot be null or empty");
+        }
+
+        if (port < 0) {
+            throw new IllegalArgumentException("port cannot be negative");
+        }
+
         return new SubscriberImpl(host, port);
     }
 
@@ -55,6 +63,18 @@ public final class SubscriberFactory {
      */
     public static Subscriber create(String host, int port, String subscriberName) {
 
+        if (host == null || host.isEmpty()) {
+            throw new IllegalArgumentException("host cannot be null or empty");
+        }
+
+        if (port < 0) {
+            throw new IllegalArgumentException("port cannot be negative");
+        }
+
+        if (subscriberName == null || subscriberName.isEmpty()) {
+            throw new IllegalArgumentException("subscriberName cannot be null or empty");
+        }
+
         return new SubscriberImpl(host, port, subscriberName);
     }
 
@@ -67,6 +87,14 @@ public final class SubscriberFactory {
      */
     public static Subscriber create(List<ClusterServer> clusterServers, String subscriberName) {
 
+        if (clusterServers == null || clusterServers.isEmpty()) {
+            throw new IllegalArgumentException("clusterServers cannot be null or empty");
+        }
+
+        if (subscriberName == null || subscriberName.isEmpty()) {
+            throw new IllegalArgumentException("subscriberName cannot be null or empty");
+        }
+
         return new SubscriberImpl(clusterServers, subscriberName);
     }
 
@@ -77,6 +105,10 @@ public final class SubscriberFactory {
      * @return A new instance of a subscriber implementation.
      */
     public static Subscriber create(List<ClusterServer> clusterServers) {
+
+        if (clusterServers == null || clusterServers.isEmpty()) {
+            throw new IllegalArgumentException("clusterServers cannot be null or empty");
+        }
 
         return new SubscriberImpl(clusterServers);
     }

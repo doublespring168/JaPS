@@ -22,9 +22,10 @@ package de.jackwhite20.japs.server;
 import de.jackwhite20.japs.server.cache.JaPSCache;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
-import de.jackwhite20.japs.server.network.OpCode;
 import de.jackwhite20.japs.server.network.SelectorThread;
 import de.jackwhite20.japs.server.util.RoundRobinList;
+import de.jackwhite20.japs.shared.config.ClusterServer;
+import de.jackwhite20.japs.shared.net.OpCode;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -80,7 +81,7 @@ public class JaPSServer implements Runnable {
 
     private JaPSCache cache;
 
-    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<Config.ClusterServer> cluster, int cleanupInterval) {
+    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval) {
 
         this.host = host;
         this.port = port;
@@ -98,9 +99,9 @@ public class JaPSServer implements Runnable {
                 while (cluster.size() > 0) {
                     LOGGER.info("Trying to connecting to all cluster servers");
 
-                    Iterator<Config.ClusterServer> clusterServerIterator = cluster.iterator();
+                    Iterator<ClusterServer> clusterServerIterator = cluster.iterator();
                     while (clusterServerIterator.hasNext()) {
-                        Config.ClusterServer clusterServer = clusterServerIterator.next();
+                        ClusterServer clusterServer = clusterServerIterator.next();
 
                         // Remove the own endpoint of this instance (does not work if it is bound to 0.0.0.0)
                         if (clusterServer.port() == port && clusterServer.host().equals(host)) {

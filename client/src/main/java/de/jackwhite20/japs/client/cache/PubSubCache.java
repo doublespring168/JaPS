@@ -19,8 +19,10 @@
 
 package de.jackwhite20.japs.client.cache;
 
+import de.jackwhite20.japs.shared.config.ClusterServer;
 import org.json.JSONObject;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -29,7 +31,16 @@ import java.util.function.Consumer;
 public interface PubSubCache {
 
     /**
-     * Disconnects the pub sub cache client.
+     * Disconnects the pub sub cache.
+     *
+     * @param force If true, the publisher will not try to reconnect
+     */
+    void disconnect(boolean force);
+
+    /**
+     * Disconnects the pub sub cache without trying to reconnect.
+     *
+     * Same as invoking disconnect(true).
      */
     void disconnect();
 
@@ -132,4 +143,11 @@ public interface PubSubCache {
      * @return The async pub sub cache.
      */
     AsyncPubSubCache async();
+
+    /**
+     * Returns an unmodifiable list of the cluster servers.
+     *
+     * @return The unmodifiable list of the cluster servers.
+     */
+    List<ClusterServer> clusterServers();
 }

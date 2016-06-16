@@ -20,22 +20,17 @@
 package de.jackwhite20.japs.client.cache.impl;
 
 import com.google.gson.Gson;
-import de.jackwhite20.japs.client.OpCode;
 import de.jackwhite20.japs.client.cache.AsyncPubSubCache;
 import de.jackwhite20.japs.client.cache.Cacheable;
 import de.jackwhite20.japs.client.cache.PubSubCache;
+import de.jackwhite20.japs.shared.config.ClusterServer;
+import de.jackwhite20.japs.shared.net.OpCode;
+import de.jackwhite20.japs.shared.nio.NioSocketClient;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.util.Iterator;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,19 +40,9 @@ import java.util.function.Consumer;
 /**
  * Created by JackWhite20 on 13.06.2016.
  */
-public class PubSubCacheImpl implements PubSubCache, Runnable {
+public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Runnable {
 
     private static final AtomicInteger CALLBACK_COUNTER = new AtomicInteger(0);
-
-    private static final int BUFFER_SIZE = 4096;
-
-    private boolean connected;
-
-    private Selector selector;
-
-    private SocketChannel socketChannel;
-
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
     private Map<Integer, Consumer> callbacks = new ConcurrentHashMap<>();
 
@@ -69,6 +54,8 @@ public class PubSubCacheImpl implements PubSubCache, Runnable {
 
     public PubSubCacheImpl(String host, int port) {
 
+        super(host, port);
+
         this.executorService = Executors.newSingleThreadExecutor(r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setName("PubSubCache Thread");
@@ -76,86 +63,58 @@ public class PubSubCacheImpl implements PubSubCache, Runnable {
             return thread;
         });
         this.asyncPubSubCache = new AsyncPubSubCacheImpl(executorService, this);
-
-        connect(host, port);
     }
 
-    private void connect(String host, int port) {
+    @Override
+    public void clientConnected() {
 
-        try {
-            selector = Selector.open();
-            socketChannel = SocketChannel.open();
+        // Not needed
+    }
 
-            // Disable the Nagle algorithm
-            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            // Try to connect to the host and port in blocking mode
-            socketChannel.connect(new InetSocketAddress(host, port));
-            socketChannel.finishConnect();
+    @Override
+    public void clientReconnected() {
 
-            // Set non blocking and register the read event
-            socketChannel.configureBlocking(false);
-            socketChannel.register(selector, SelectionKey.OP_READ);
+        // Not needed
+    }
 
-            Thread pubSubCacheThread = new Thread(this);
-            pubSubCacheThread.setName("PubSubCache Thread");
-            pubSubCacheThread.start();
-        } catch (Exception ignore) {
-            disconnect();
+    @SuppressWarnings("unchecked")
+    @Override
+    public void received(JSONObject jsonObject) {
 
-            throw new IllegalArgumentException(String.format("cannot connect to %s:%s", host, port));
+        int op = ((Integer) jsonObject.remove("op"));
+
+        switch (op) {
+            case 5:
+                int id = jsonObject.getInt("id");
+                Object value = (jsonObject.has("value")) ? jsonObject.get("value") : null;
+
+                if (callbacks.containsKey(id)) {
+                    // Catch user related exceptions extra
+                    try {
+                        // Remove the consumer and accept it
+                        callbacks.remove(id).accept(value);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                break;
         }
     }
 
-    private void closeSocket() {
+    @Override
+    public void disconnect(boolean force) {
 
-        if (selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        close(force);
 
-        if (socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void write(JSONObject jsonObject) {
-
-        try {
-            // Send the json data and prepend the length
-            byte[] bytes = jsonObject.toString().getBytes("UTF-8");
-            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
-            byteBuffer.putInt(bytes.length);
-            byteBuffer.put(bytes);
-
-            // Prepare the buffer for writing
-            byteBuffer.flip();
-
-            socketChannel.write(byteBuffer);
-        } catch (IOException e) {
-            disconnect();
+        if (executorService != null) {
+            executorService.shutdown();
         }
     }
 
     @Override
     public void disconnect() {
 
-        if (connected) {
-            connected = false;
-
-            // Close selector and the socket channel
-            closeSocket();
-        }
-
-        if (executorService != null) {
-            executorService.shutdown();
-        }
+        disconnect(true);
     }
 
     @Override
@@ -345,88 +304,9 @@ public class PubSubCacheImpl implements PubSubCache, Runnable {
         return asyncPubSubCache;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void run() {
+    public List<ClusterServer> clusterServers() {
 
-        connected = true;
-
-        while (connected) {
-            try {
-                if (selector.select() == 0) {
-                    continue;
-                }
-
-                Set<SelectionKey> keys = selector.selectedKeys();
-                Iterator<SelectionKey> keyIterator = keys.iterator();
-
-                while (keyIterator.hasNext()) {
-                    SelectionKey key = keyIterator.next();
-
-                    keyIterator.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    if (key.isReadable()) {
-                        int read = socketChannel.read(byteBuffer);
-
-                        if (read == -1) {
-                            disconnect();
-                            return;
-                        }
-
-                        byteBuffer.flip();
-
-                        while (byteBuffer.remaining() > 0) {
-                            byteBuffer.mark();
-
-                            if (byteBuffer.remaining() < 4) {
-                                break;
-                            }
-
-                            int readable = byteBuffer.getInt();
-                            if (byteBuffer.remaining() < readable) {
-                                byteBuffer.reset();
-                                break;
-                            }
-
-                            byte[] bytes = new byte[readable];
-                            byteBuffer.get(bytes);
-
-                            String json = new String(bytes, "UTF-8");
-
-                            JSONObject jsonObject = new JSONObject(json);
-
-                            int op = ((Integer) jsonObject.remove("op"));
-
-                            switch (op) {
-                                case 5:
-                                    int id = jsonObject.getInt("id");
-                                    Object value = (jsonObject.has("value")) ? jsonObject.get("value") : null;
-
-                                    if (callbacks.containsKey(id)) {
-                                        // Catch user related exceptions extra
-                                        try {
-                                            // Remove the consumer and accept it
-                                            callbacks.remove(id).accept(value);
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                    break;
-                            }
-                        }
-
-                        byteBuffer.compact();
-                    }
-                }
-            } catch (Exception ignore) {
-                disconnect();
-            }
-        }
-
-        disconnect();
+        return Collections.unmodifiableList(super.clusterServers());
     }
 }

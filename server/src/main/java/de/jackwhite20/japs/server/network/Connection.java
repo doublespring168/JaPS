@@ -21,6 +21,7 @@ package de.jackwhite20.japs.server.network;
 
 import de.jackwhite20.japs.server.JaPS;
 import de.jackwhite20.japs.server.JaPSServer;
+import de.jackwhite20.japs.shared.net.OpCode;
 import org.json.JSONObject;
 
 import java.io.IOException;

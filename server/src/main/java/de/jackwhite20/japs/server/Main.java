@@ -21,6 +21,7 @@ package de.jackwhite20.japs.server;
 
 import com.google.gson.Gson;
 import de.jackwhite20.japs.server.config.Config;
+import de.jackwhite20.japs.shared.config.ClusterServer;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -57,12 +58,12 @@ public class Main {
 
             if (commandLine.hasOption("h") && commandLine.hasOption("p") && commandLine.hasOption("b") && commandLine.hasOption("t")) {
 
-                List<Config.ClusterServer> clusterServers = new ArrayList<>();
+                List<ClusterServer> clusterServers = new ArrayList<>();
 
                 if (commandLine.hasOption("c")) {
                     for (String c : commandLine.getOptionValues("c")) {
                         String[] splitted = c.split(":");
-                        clusterServers.add(new Config.ClusterServer(splitted[0], Integer.parseInt(splitted[1])));
+                        clusterServers.add(new ClusterServer(splitted[0], Integer.parseInt(splitted[1])));
                     }
                 }
 

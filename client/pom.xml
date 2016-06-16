@@ -8,4 +8,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>japs-client</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.jackwhite20</groupId>
+            <artifactId>japs-shared</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>

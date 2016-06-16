@@ -21,8 +21,10 @@ package de.jackwhite20.japs.client.pub.impl;
 
 import de.jackwhite20.japs.client.pub.AsyncPublisher;
 import de.jackwhite20.japs.client.pub.Publisher;
+import de.jackwhite20.japs.shared.config.ClusterServer;
 import org.json.JSONObject;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -122,6 +124,12 @@ public class AsyncPublisherImpl implements AsyncPublisher {
     public AsyncPublisher async() {
 
         return this;
+    }
+
+    @Override
+    public List<ClusterServer> clusterServers() {
+
+        return publisher.clusterServers();
     }
 
     @Override

@@ -17,46 +17,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.client;
+package de.jackwhite20.japs.shared.config;
 
-/**
- * Created by JackWhite20 on 14.06.2016.
- */
-public enum OpCode {
+public class ClusterServer {
 
-    OP_UNKNOWN(-1),
-    OP_REGISTER_CHANNEL(0),
-    OP_UNREGISTER_CHANNEL(1),
-    OP_BROADCAST(2),
-    OP_SUBSCRIBER_SET_NAME(3),
-    OP_CACHE_ADD(4),
-    OP_CACHE_GET(5),
-    OP_CACHE_REMOVE(6),
-    OP_CACHE_SET_EXPIRE(7),
-    OP_CACHE_GET_EXPIRE(8),
-    OP_CLUSTER_INFO_SET(9),
-    OP_KEEP_ALIVE(10);
+    private String host;
 
-    private int code;
+    private int port;
 
-    OpCode(int code) {
+    public ClusterServer(String host, int port) {
 
-        this.code = code;
+        this.host = host;
+        this.port = port;
     }
 
-    public int getCode() {
+    public String host() {
 
-        return code;
+        return host;
     }
 
-    public static OpCode of(int code) {
+    public int port() {
 
-        for (OpCode opCode : values()) {
-            if (opCode.code == code) {
-                return opCode;
-            }
-        }
+        return port;
+    }
 
-        return OP_UNKNOWN;
+    @Override
+    public String toString() {
+
+        return "ClusterServer{" +
+                "host='" + host + '\'' +
+                ", port=" + port +
+                '}';
     }
 }

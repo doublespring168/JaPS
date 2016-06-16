@@ -20,6 +20,9 @@
 package de.jackwhite20.japs.client.sub;
 
 import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
+import de.jackwhite20.japs.shared.config.ClusterServer;
+
+import java.util.List;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -99,4 +102,11 @@ public interface Subscriber {
      * @return The name.
      */
     String name();
+
+    /**
+     * Returns an unmodifiable list of the cluster servers.
+     *
+     * @return The unmodifiable list of the cluster servers.
+     */
+    List<ClusterServer> clusterServers();
 }

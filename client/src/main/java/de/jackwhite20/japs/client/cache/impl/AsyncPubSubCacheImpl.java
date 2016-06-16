@@ -21,8 +21,10 @@ package de.jackwhite20.japs.client.cache.impl;
 
 import de.jackwhite20.japs.client.cache.AsyncPubSubCache;
 import de.jackwhite20.japs.client.cache.PubSubCache;
+import de.jackwhite20.japs.shared.config.ClusterServer;
 import org.json.JSONObject;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
@@ -45,6 +47,12 @@ public class AsyncPubSubCacheImpl implements AsyncPubSubCache {
     public ExecutorService executorService() {
 
         return executorService;
+    }
+
+    @Override
+    public void disconnect(boolean force) {
+
+        pubSubCache.disconnect(force);
     }
 
     @Override
@@ -123,5 +131,11 @@ public class AsyncPubSubCacheImpl implements AsyncPubSubCache {
     public AsyncPubSubCache async() {
 
         return this;
+    }
+
+    @Override
+    public List<ClusterServer> clusterServers() {
+
+        return pubSubCache.clusterServers();
     }
 }

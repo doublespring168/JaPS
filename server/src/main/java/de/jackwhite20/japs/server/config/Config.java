@@ -19,6 +19,8 @@
 
 package de.jackwhite20.japs.server.config;
 
+import de.jackwhite20.japs.shared.config.ClusterServer;
+
 import java.util.List;
 
 /**
@@ -98,37 +100,5 @@ public class Config {
                 ", cluster=" + cluster +
                 ", cleanupInterval=" + cleanupInterval +
                 '}';
-    }
-
-    public static class ClusterServer {
-
-        private String host;
-
-        private int port;
-
-        public ClusterServer(String host, int port) {
-
-            this.host = host;
-            this.port = port;
-        }
-
-        public String host() {
-
-            return host;
-        }
-
-        public int port() {
-
-            return port;
-        }
-
-        @Override
-        public String toString() {
-
-            return "ClusterServer{" +
-                    "host='" + host + '\'' +
-                    ", port=" + port +
-                    '}';
-        }
     }
 }
