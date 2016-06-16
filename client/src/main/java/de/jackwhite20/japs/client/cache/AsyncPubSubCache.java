@@ -17,35 +17,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.server.cache;
+package de.jackwhite20.japs.client.cache;
+
+import java.util.concurrent.ExecutorService;
 
 /**
- * Created by JackWhite20 on 13.06.2016.
+ * Created by JackWhite20 on 15.06.2016.
  */
-public class CacheEntry {
+public interface AsyncPubSubCache extends PubSubCache {
 
-    private long expireBy;
-
-    private Object value;
-
-    public CacheEntry(long expireBy, Object value) {
-
-        this.expireBy = expireBy;
-        this.value = value;
-    }
-
-    public long expireBy() {
-
-        return expireBy;
-    }
-
-    public void expireBy(long expireBy) {
-
-        this.expireBy = expireBy;
-    }
-
-    public Object value() {
-
-        return value;
-    }
+    /**
+     * Returns the underlying executor service of this async pub sub cache.
+     *
+     * @return The executor service.
+     */
+    ExecutorService executorService();
 }

@@ -41,11 +41,7 @@ public class JaPSCache {
 
     private ScheduledExecutorService executorService;
 
-    private int cleanupInterval;
-
     public JaPSCache(int cleanupInterval) {
-
-        this.cleanupInterval = cleanupInterval;
 
         if (cleanupInterval > 0) {
             executorService = Executors.newScheduledThreadPool(1);
@@ -62,7 +58,7 @@ public class JaPSCache {
             if (timestamp != -1 && System.currentTimeMillis() > timestamp) {
                 it.remove();
 
-                logger.log(Level.FINE, "Value '" + cacheEntry.value() + "' has been removed from the cache");
+                logger.log(Level.FINE, "[Cache] Value '" + cacheEntry.value() + "' has been removed from the cache");
             }
         }
     }
@@ -133,5 +129,39 @@ public class JaPSCache {
     public boolean remove(String key) {
 
         return getAndRemove(key) != null;
+    }
+
+    public void expire(String key, int secondsToLive) {
+
+        if (key == null) {
+            throw new IllegalArgumentException("key cannot be null");
+        }
+
+        CacheEntry entry = cache.get(key);
+
+        if (entry == null) {
+            return;
+        }
+
+        long expireBy = secondsToLive != -1 ? System.currentTimeMillis() + (secondsToLive * 1000) : secondsToLive;
+
+        entry.expireBy(expireBy);
+    }
+
+    public long expire(String key) {
+
+        if (key == null) {
+            throw new IllegalArgumentException("key cannot be null");
+        }
+
+        CacheEntry entry = cache.get(key);
+
+        if (entry == null) {
+            return -1;
+        }
+
+        long expireBy = entry.expireBy();
+
+        return (expireBy != -1) ? (expireBy - System.currentTimeMillis()) / 1000 : expireBy;
     }
 }

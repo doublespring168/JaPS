@@ -19,7 +19,6 @@
 
 package de.jackwhite20.japs.client.pub;
 
-import de.jackwhite20.japs.client.cache.PubSubCache;
 import org.json.JSONObject;
 
 /**
@@ -143,11 +142,4 @@ public interface Publisher {
      * @return The async publisher.
      */
     AsyncPublisher async();
-
-    /**
-     * Returns the pub sub cache.
-     *
-     * @return Returns a cache implementation.
-     */
-    PubSubCache cache();
 }

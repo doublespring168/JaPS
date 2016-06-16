@@ -19,8 +19,7 @@
 
 package de.jackwhite20.japs.server;
 
-import de.jackwhite20.japs.client.pub.Publisher;
-import de.jackwhite20.japs.client.pub.PublisherFactory;
+import de.jackwhite20.japs.client.OpCode;
 import de.jackwhite20.japs.server.cache.JaPSCache;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
@@ -31,6 +30,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -108,13 +109,22 @@ public class JaPSServer implements Runnable {
                         }
 
                         try {
-                            Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
-                            if (publisher.connected()) {
-                                clusterPublisher.add(new ClusterPublisher(publisher, clusterServer.host(), clusterServer.port()));
+                            //Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
+                            ClusterPublisher cb = new ClusterPublisher(clusterServer.host(), clusterServer.port());
+
+                            if (cb.connect()) {
+                                clusterPublisher.add(cb);
 
                                 clusterServerIterator.remove();
 
+                                cb.write(new JSONObject()
+                                        .put("op", OpCode.OP_CLUSTER_INFO_SET.getCode())
+                                        .put("host", host)
+                                        .put("port", port));
+
                                 LOGGER.log(Level.INFO, "Connected to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
+                            } else {
+                                LOGGER.log(Level.SEVERE, "Could not connect to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
                             }
                         } catch (Exception e) {
                             LOGGER.log(Level.SEVERE, "Could not connect to cluster server {0}:{1}", new Object[]{clusterServer.host(), String.valueOf(clusterServer.port())});
@@ -252,6 +262,7 @@ public class JaPSServer implements Runnable {
             }
         }
 
+        // Broadcast it to the cluster if possible
         clusterBroadcast(con, channel, data);
     }
 
@@ -266,19 +277,28 @@ public class JaPSServer implements Runnable {
             // Get the correct data to send
             String broadcastData = data.toString();
 
+            // Find the subscribers with that name and route it to these
             for (Connection filteredConnection : channelSessions.get(channel).stream().filter(connection -> connection.name().equals(subscriberName)).collect(Collectors.toList())) {
                 filteredConnection.send(broadcastData);
             }
         }
 
+        // Broadcast it to the cluster if possible
         clusterBroadcast(con, channel, clusterData);
     }
 
     private void clusterBroadcast(Connection con, String channel, String data) {
 
         if (clusterPublisher.size() > 0) {
-            // Publish it to all clusters but exclude this server
-            clusterPublisher.stream().filter(cl -> con.port() != cl.port && !con.host().equals(cl.host) && cl.connected()).forEach(cl -> cl.publisher.publish(channel, data));
+            JSONObject clusterMessage = new JSONObject(data)
+                    .put("op", OpCode.OP_BROADCAST.getCode())
+                    .put("ch", channel);
+
+            // Publish it to all clusters but exclude the server which has sent it
+            // if it comes from another JaPS server but also publish it
+            // if a normal publisher client has sent it
+            clusterPublisher.stream().filter(cl -> cl.connected && (con.host() == null || (con.host() != null && con.port() != cl.port && !con.host().equals(cl.host))))
+                    .forEach(cl -> cl.write(clusterMessage));
         }
     }
 
@@ -366,22 +386,122 @@ public class JaPSServer implements Runnable {
 
     private static class ClusterPublisher {
 
-        private Publisher publisher;
+        private SocketChannel socketChannel;
 
         private String host;
 
         private int port;
 
-        public ClusterPublisher(Publisher publisher, String host, int port) {
+        private boolean connected;
 
-            this.publisher = publisher;
+        private AtomicBoolean reconnecting = new AtomicBoolean(false);
+
+        public ClusterPublisher(String host, int port) {
+
             this.host = host;
             this.port = port;
         }
 
-        public boolean connected() {
+        private boolean connect() {
 
-            return publisher.connected();
+            try {
+                socketChannel = SocketChannel.open();
+                socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+                socketChannel.connect(new InetSocketAddress(host, port));
+
+                connected = true;
+
+                new Thread(new KeepAliveTask()).start();
+
+                return true;
+            } catch (IOException e) {
+                connected = false;
+            }
+
+            return false;
+        }
+
+        private void reconnect() {
+
+            if (!reconnecting.get()){
+                reconnecting.set(true);
+
+                new Thread(new ConnectTask()).start();
+            }
+        }
+
+        public void write(JSONObject jsonObject) {
+
+            // Instantly return
+            if (!connected) {
+                return;
+            }
+
+            try {
+                // Send the json data and prepend the length
+                byte[] bytes = jsonObject.toString().getBytes("UTF-8");
+                ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
+                byteBuffer.putInt(bytes.length);
+                byteBuffer.put(bytes);
+
+                // Prepare the buffer for writing
+                byteBuffer.flip();
+
+                socketChannel.write(byteBuffer);
+            } catch (IOException e) {
+                connected = false;
+
+                try {
+                    socketChannel.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+
+                reconnect();
+
+                LOGGER.log(Level.SEVERE, "Connection to cluster server {0}:{1} lost", new Object[] {host, String.valueOf(port)});
+            }
+        }
+
+        private class ConnectTask implements Runnable {
+
+            @Override
+            public void run() {
+
+                // Try to reconnect
+                while (!connect()) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                LOGGER.log(Level.SEVERE, "Connected to cluster server {0}:{1}", new Object[] {host, String.valueOf(port)});
+
+                reconnecting.set(false);
+
+                connected = true;
+            }
+        }
+
+        private class KeepAliveTask implements Runnable {
+
+            @Override
+            public void run() {
+
+                while (connected) {
+                    write(new JSONObject()
+                            .put("op", OpCode.OP_KEEP_ALIVE.getCode())
+                            .put("ch", "keep-alive"));
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }

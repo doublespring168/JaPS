@@ -42,6 +42,14 @@ public final class PublisherFactory {
      */
     public static Publisher create(String host, int port) {
 
+        if (host == null || host.isEmpty()) {
+            throw new IllegalArgumentException("host cannot be null or empty");
+        }
+
+        if (port < 0) {
+            throw new IllegalArgumentException("port cannot be negative");
+        }
+
         return new PublisherImpl(host, port);
     }
 
@@ -52,6 +60,10 @@ public final class PublisherFactory {
      * @return A new instance of a publisher implementation.
      */
     public static Publisher create(List<ClusterServer> clusterServers) {
+
+        if (clusterServers == null) {
+            throw new IllegalArgumentException("clusterServers cannot be null");
+        }
 
         return new PublisherImpl(clusterServers);
     }

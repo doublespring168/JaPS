@@ -17,35 +17,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.server.cache;
+package de.jackwhite20.japs.client.cache;
+
+import de.jackwhite20.japs.client.cache.impl.PubSubCacheImpl;
 
 /**
  * Created by JackWhite20 on 13.06.2016.
  */
-public class CacheEntry {
+public final class PubSubCacheFactory {
 
-    private long expireBy;
-
-    private Object value;
-
-    public CacheEntry(long expireBy, Object value) {
-
-        this.expireBy = expireBy;
-        this.value = value;
+    private PubSubCacheFactory() {
+        // no instance
     }
 
-    public long expireBy() {
+    /**
+     * Creates a new pub sub cache implementation and connects to the given host and port.
+     *
+     * @param host The host to connect to.
+     * @param port The port to connect to.
+     * @return A new instance of a pub sub cache implementation.
+     */
+    public static PubSubCache create(String host, int port) {
 
-        return expireBy;
-    }
-
-    public void expireBy(long expireBy) {
-
-        this.expireBy = expireBy;
-    }
-
-    public Object value() {
-
-        return value;
+        return new PubSubCacheImpl(host, port);
     }
 }

@@ -66,7 +66,7 @@ public class Main {
                     }
                 }
 
-                config = new Config(commandLine.getOptionValue("h"), Integer.parseInt(commandLine.getOptionValue("p")), Integer.parseInt(commandLine.getOptionValue("b")), commandLine.hasOption("d"), Integer.parseInt(commandLine.getOptionValue("t")), clusterServers);
+                config = new Config(commandLine.getOptionValue("h"), Integer.parseInt(commandLine.getOptionValue("p")), Integer.parseInt(commandLine.getOptionValue("b")), commandLine.hasOption("d"), Integer.parseInt(commandLine.getOptionValue("t")), clusterServers, 300);
             } else {
                 System.out.println("Usage: java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-d]");
                 System.out.println("Example (with debugging enabled): java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d");

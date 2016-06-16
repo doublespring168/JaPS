@@ -20,8 +20,7 @@
 package de.jackwhite20.japs.client.pub.impl;
 
 import com.google.gson.Gson;
-import de.jackwhite20.japs.client.cache.PubSubCache;
-import de.jackwhite20.japs.client.cache.impl.PubSubCacheImpl;
+import de.jackwhite20.japs.client.OpCode;
 import de.jackwhite20.japs.client.pub.AsyncPublisher;
 import de.jackwhite20.japs.client.pub.Publisher;
 import de.jackwhite20.japs.client.util.ClusterServer;
@@ -67,8 +66,6 @@ public class PublisherImpl implements Publisher {
 
     private ConcurrentLinkedQueue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
 
-    private PubSubCache pubSubCache;
-
     public PublisherImpl(String host, int port) {
 
         this(Collections.singletonList(new ClusterServer(host, port)));
@@ -105,8 +102,6 @@ public class PublisherImpl implements Publisher {
             // Disable the Nagle algorithm
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
             socketChannel.connect(new InetSocketAddress(host, port));
-
-            this.pubSubCache = new PubSubCacheImpl(socketChannel);
 
             // We are connected successfully
             connected = true;
@@ -146,6 +141,7 @@ public class PublisherImpl implements Publisher {
 
     private void addToQueue(String channel, JSONObject jsonObject) {
 
+        // Only queue up to 100 messages
         if (sendQueue.size() < 100) {
             sendQueue.offer(jsonObject.put("ch", channel));
         }
@@ -208,7 +204,7 @@ public class PublisherImpl implements Publisher {
         }
 
         // Set the op code, channel
-        jsonObject.put("op", 2);
+        jsonObject.put("op", OpCode.OP_BROADCAST.getCode());
         jsonObject.put("ch", channel);
         // Set the subscriber name if it is not null
         if (subscriberName != null) {
@@ -309,20 +305,33 @@ public class PublisherImpl implements Publisher {
         return asyncPublisher;
     }
 
-    @Override
-    public PubSubCache cache() {
-
-        return pubSubCache;
-    }
-
     private class KeepAliveTask implements Runnable {
 
         @Override
         public void run() {
 
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OpCode.OP_KEEP_ALIVE.getCode())
+                    .put("ch", "keep-alive");
+
             while (connected) {
                 // Try to send a keep alive to detect connection lost
-                publish("keep-alive", new JSONObject().put("time", System.currentTimeMillis()));
+                //publish("keep-alive", new JSONObject().put("time", System.currentTimeMillis()));
+
+                try {
+                    // Send the json data and prepend the length
+                    byte[] bytes = jsonObject.toString().getBytes("UTF-8");
+                    ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
+                    byteBuffer.putInt(bytes.length);
+                    byteBuffer.put(bytes);
+
+                    // Prepare the buffer for writing
+                    byteBuffer.flip();
+
+                    socketChannel.write(byteBuffer);
+                } catch (IOException e) {
+                    disconnect(false);
+                }
 
                 try {
                     Thread.sleep(KEEP_ALIVE_TIME);
@@ -369,7 +378,7 @@ public class PublisherImpl implements Publisher {
             if (!sendQueue.isEmpty()) {
 
                 try {
-                    // Give the subscriber a chance to connect and register his channels first
+                    // Give the subscribers a chance to connect and register their channels first
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();

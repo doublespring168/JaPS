@@ -20,6 +20,7 @@
 package de.jackwhite20.japs.client.sub.impl;
 
 import com.google.gson.Gson;
+import de.jackwhite20.japs.client.OpCode;
 import de.jackwhite20.japs.client.sub.Subscriber;
 import de.jackwhite20.japs.client.sub.impl.handler.ChannelHandler;
 import de.jackwhite20.japs.client.sub.impl.handler.ClassType;
@@ -51,12 +52,6 @@ public class SubscriberImpl implements Subscriber, Runnable {
     private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
     private static final int BUFFER_SIZE = 4096;
-
-    private static final int OP_SUBSCRIBE = 0;
-
-    private static final int OP_UNSUBSCRIBE = 1;
-
-    private static final int OP_NAME = 3;
 
     private boolean connected;
 
@@ -129,7 +124,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             socketChannel.finishConnect();
 
             // Register with our name
-            write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
+            write(new JSONObject().put("op", OpCode.OP_SUBSCRIBER_SET_NAME.getCode()).put("su", name).toString());
 
             // Resend the subscribed channels if we have lost connection before
             for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
@@ -268,7 +263,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             handlers.put(channel, new HandlerInfo(handler.newInstance()));
 
             JSONObject jsonObject = new JSONObject()
-                    .put("op", OP_SUBSCRIBE)
+                    .put("op", OpCode.OP_REGISTER_CHANNEL.getCode())
                     .put("ch", channel);
 
             write(jsonObject.toString());
@@ -308,7 +303,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));
 
             JSONObject jsonObject = new JSONObject()
-                    .put("op", OP_SUBSCRIBE)
+                    .put("op", OpCode.OP_REGISTER_CHANNEL.getCode())
                     .put("ch", channel);
 
             write(jsonObject.toString());
@@ -326,7 +321,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
             multiHandlers.remove(channel);
 
             JSONObject jsonObject = new JSONObject()
-                    .put("op", OP_UNSUBSCRIBE)
+                    .put("op", OpCode.OP_UNREGISTER_CHANNEL.getCode())
                     .put("ch", channel);
 
             write(jsonObject.toString());
