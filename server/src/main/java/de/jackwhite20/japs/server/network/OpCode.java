@@ -44,6 +44,11 @@ public enum OpCode {
         this.code = code;
     }
 
+    public int getCode() {
+
+        return code;
+    }
+
     public static OpCode of(int code) {
 
         for (OpCode opCode : values()) {

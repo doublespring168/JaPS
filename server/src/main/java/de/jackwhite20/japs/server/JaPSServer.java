@@ -19,10 +19,10 @@
 
 package de.jackwhite20.japs.server;
 
-import de.jackwhite20.japs.client.OpCode;
 import de.jackwhite20.japs.server.cache.JaPSCache;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
+import de.jackwhite20.japs.server.network.OpCode;
 import de.jackwhite20.japs.server.network.SelectorThread;
 import de.jackwhite20.japs.server.util.RoundRobinList;
 import org.json.JSONObject;
@@ -109,7 +109,6 @@ public class JaPSServer implements Runnable {
                         }
 
                         try {
-                            //Publisher publisher = PublisherFactory.create(clusterServer.host(), clusterServer.port());
                             ClusterPublisher cb = new ClusterPublisher(clusterServer.host(), clusterServer.port());
 
                             if (cb.connect()) {
