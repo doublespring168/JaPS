@@ -43,7 +43,7 @@ public class SubCommand extends Command {
     public boolean execute(String[] args) {
 
         if (args.length == 1) {
-            Subscriber subscriber = SubscriberFactory.create("localhost", 6000);
+            Subscriber subscriber = SubscriberFactory.create("localhost", JaPS.getConfig().port());
             subscriber.subscribe(args[0], SubCommandChannelHandler.class);
 
             SUBSCRIBERS.add(subscriber);

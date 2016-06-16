@@ -101,6 +101,8 @@ public class PubSubCacheImpl implements PubSubCache, Runnable {
             pubSubCacheThread.start();
         } catch (Exception ignore) {
             disconnect();
+
+            throw new IllegalArgumentException(String.format("cannot connect to %s:%s", host, port));
         }
     }
 
@@ -149,7 +151,9 @@ public class PubSubCacheImpl implements PubSubCache, Runnable {
 
             // Close selector and the socket channel
             closeSocket();
+        }
 
+        if (executorService != null) {
             executorService.shutdown();
         }
     }
@@ -204,7 +208,7 @@ public class PubSubCacheImpl implements PubSubCache, Runnable {
         }
 
         if (!(value instanceof Cacheable)) {
-            throw new IllegalArgumentException("value must implement 'Cacheable' and must be serializable");
+            throw new IllegalArgumentException("value must implement the 'Cacheable' class");
         }
 
         put(key, gson.toJson(value), expire);

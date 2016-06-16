@@ -19,6 +19,7 @@
 
 package de.jackwhite20.japs.server;
 
+import de.jackwhite20.japs.client.sub.Subscriber;
 import de.jackwhite20.japs.server.command.Command;
 import de.jackwhite20.japs.server.command.CommandManager;
 import de.jackwhite20.japs.server.command.impl.EndCommand;
@@ -134,6 +135,11 @@ public class JaPS {
 
         running = false;
 
+        // Disconnect all self subscriptions
+        for (Subscriber subscriber : SubCommand.SUBSCRIBERS) {
+            subscriber.disconnect(true);
+        }
+
         // Try to close faithfully
         jaPSServer.stop();
 
@@ -154,5 +160,10 @@ public class JaPS {
     public static CommandManager getCommandManager() {
 
         return instance.commandManager;
+    }
+
+    public static Config getConfig() {
+
+        return instance.config;
     }
 }
