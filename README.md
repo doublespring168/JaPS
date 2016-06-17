@@ -1,11 +1,12 @@
 # JaPS
-JaPS is a robust and lightweight Java Pub/Sub library which uses JSON.
+JaPS is a robust and lightweight Java Pub/Sub library and in-memory key-value cache which uses JSON.
 
 I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well,
 therefore I have decided to publish it here on GitHub.
 
 # Features
 
+- in-memory key-value cache (based on json, so class serialization available)
 - channels
 - channel handler (json object and custom object)
 - key-value based handler method invocation
@@ -40,11 +41,54 @@ _Client:_
 <dependency>
     <groupId>de.jackwhite20</groupId>
     <artifactId>japs-client</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>2.2.0-SNAPSHOT</version>
 </dependency>
 ```
 
 # Quick start
+
+_Cache:_
+```java
+PubSubCache cache = PubSubCacheFactory.create("localhost", 1337);
+
+cache.put("json", new JSONObject().put("foo", "bar"));
+cache.get("json", jsonObject -> System.out.println("Foo: " + jsonObject.get("foo")));
+cache.async().get("json", jsonObject -> System.out.println("Foo: " + jsonObject.get("foo")));
+
+// The class needs to implement the 'Cacheable' interface to be serialized to json
+// Key will expire in 5 seconds
+cache.put("test", new FooBar("Some text"), 5);
+cache.get("test", json -> System.out.println("FooBar class: " + json.toString()));
+
+// Gets the time in seconds how long the key lives until it's expired
+cache.expire("test", System.out::println);
+
+try {
+	Thread.sleep(1000);
+} catch (InterruptedException e) {
+	e.printStackTrace();
+}
+
+cache.expire("test", System.out::println);
+
+// Gets the class instance of the given class from the key
+cache.getClass("test", fooBar -> System.out.println("Foo: " + fooBar.getFoo()), FooBar.class);
+// The same as above but without lambda
+/*cache.getClass("test", new Consumer<FooBar>() {
+
+	@Override
+	public void accept(FooBar fooBar) {
+
+		System.out.println(fooBar);
+	}
+}, FooBar.class);*/
+
+// Removes the key from the cache
+cache.remove("json");
+
+// Disconnectes the cache client
+cache.disconnect();
+```
 
 _Publisher:_
 ```java
@@ -165,6 +209,11 @@ public class FooBar {
     public FooBar(String foo) {
 
         this.foo = foo;
+    }
+
+	public String getFoo() {
+
+        return foo;
     }
 
     @Override
