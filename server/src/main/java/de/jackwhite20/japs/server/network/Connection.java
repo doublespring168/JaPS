@@ -199,12 +199,16 @@ public class Connection {
 
                         server.cache().put(key, value, expire);
 
+                        server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_ADD.getCode()));
+
                         LOGGER.log(Level.FINE, "[{0}] Added cache entry {1}={2} with an expire of {3}", new Object[] {remoteAddress.toString(), key, value, expire});
                         break;
                     case OP_CACHE_REMOVE:
                         String removeKey = jsonObject.getString("key");
 
                         server.cache().remove(removeKey);
+
+                        server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_REMOVE.getCode()));
 
                         LOGGER.log(Level.FINE, "[{0}] Removed cache entry with key {1}", new Object[] {remoteAddress.toString(), removeKey});
                         break;
@@ -213,6 +217,8 @@ public class Connection {
                         int expireSeconds = jsonObject.getInt("expire");
 
                         server.cache().expire(expireKey, expireSeconds);
+
+                        server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_SET_EXPIRE.getCode()));
 
                         LOGGER.log(Level.FINE, "[{0}] Set expire seconds for key {1} to {2} seconds", new Object[] {remoteAddress.toString(), expireKey, expireSeconds});
                         break;

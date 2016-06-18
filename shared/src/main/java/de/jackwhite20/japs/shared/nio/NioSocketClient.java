@@ -184,11 +184,6 @@ public abstract class NioSocketClient implements Runnable {
         }
     }
 
-    public void close() {
-
-        close(true);
-    }
-
     public void write(JSONObject jsonObject, boolean queueEnabled) {
 
         if (socketChannel == null || !socketChannel.isConnected()) {

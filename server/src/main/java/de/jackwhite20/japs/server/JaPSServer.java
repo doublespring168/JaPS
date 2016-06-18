@@ -263,7 +263,7 @@ public class JaPSServer implements Runnable {
         }
 
         // Broadcast it to the cluster if possible
-        clusterBroadcast(con, channel, data);
+        clusterPubSubBroadcast(con, channel, data);
     }
 
     public void broadcastTo(Connection con, String channel, JSONObject data, String subscriberName) {
@@ -284,22 +284,27 @@ public class JaPSServer implements Runnable {
         }
 
         // Broadcast it to the cluster if possible
-        clusterBroadcast(con, channel, clusterData);
+        clusterPubSubBroadcast(con, channel, clusterData);
     }
 
-    private void clusterBroadcast(Connection con, String channel, String data) {
+    private void clusterPubSubBroadcast(Connection connection, String channel, String data) {
 
         if (clusterPublisher.size() > 0) {
             JSONObject clusterMessage = new JSONObject(data)
                     .put("op", OpCode.OP_BROADCAST.getCode())
                     .put("ch", channel);
 
-            // Publish it to all clusters but exclude the server which has sent it
-            // if it comes from another JaPS server but also publish it
-            // if a normal publisher client has sent it
-            clusterPublisher.stream().filter(cl -> cl.connected && (con.host() == null || (con.host() != null && con.port() != cl.port && !con.host().equals(cl.host))))
-                    .forEach(cl -> cl.write(clusterMessage));
+            clusterBroadcast(connection, clusterMessage);
         }
+    }
+
+    public void clusterBroadcast(Connection connection, JSONObject data) {
+
+        // Publish it to all clusters but exclude the server which has sent it
+        // if it comes from another JaPS server but also publish it
+        // if a normal publisher client has sent it
+        clusterPublisher.stream().filter(cl -> cl.connected && (connection.host() == null || (connection.host() != null && connection.port() != cl.port && !connection.host().equals(cl.host))))
+                .forEach(cl -> cl.write(data));
     }
 
     private void acquireLock() {
