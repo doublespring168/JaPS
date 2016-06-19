@@ -54,7 +54,12 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
 
     public PubSubCacheImpl(String host, int port) {
 
-        super(host, port);
+        this(Collections.singletonList(new ClusterServer(host, port)));
+    }
+
+    public PubSubCacheImpl(List<ClusterServer> clusterServers) {
+
+        super(clusterServers);
 
         this.executorService = Executors.newSingleThreadExecutor(r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
