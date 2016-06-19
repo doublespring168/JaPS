@@ -45,7 +45,33 @@ _Client:_
 </dependency>
 ```
 
-# Quick start
+# Server start with the CLI
+
+_General syntax:_
+
+```
+java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-c IP:Port IP:Port] [-d]
+```
+
+_Without debugging and without cluster setup:_
+
+```
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4
+```
+
+_With debugging and without cluster setup:_
+
+```
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d
+```
+
+_With debugging and with cluster setup:_
+
+```
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d
+```
+
+# API examples
 
 _Cache:_
 ```java
