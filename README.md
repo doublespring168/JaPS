@@ -76,6 +76,8 @@ java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d
 _Cache:_
 ```java
 PubSubCache cache = PubSubCacheFactory.create("localhost", 1337);
+// To create a pub sub cache from a cluster
+//PubSubCache cache = PubSubCacheFactory.create(Arrays.asList(new ClusterServer("localhost", 1337), new ClusterServer("localhost", 1338)));
 
 cache.put("json", new JSONObject().put("foo", "bar"));
 cache.get("json", jsonObject -> System.out.println("Foo: " + jsonObject.get("foo")));
@@ -119,6 +121,8 @@ cache.disconnect();
 _Publisher:_
 ```java
 Publisher publisher = PublisherFactory.create("localhost", 1337);
+// To create a publisher from a cluster
+//Publisher publisher = PublisherFactory.create(Arrays.asList(new ClusterServer("localhost", 1337), new ClusterServer("localhost", 1338)));
 
 JSONObject fooBar = new JSONObject();
 fooBar.put("foo", "bar");
@@ -162,6 +166,8 @@ publisher.disconnect(true);
 _Subscriber:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
+// To create a subscriber from a cluster
+//Subscriber subscriber = SubscriberFactory.create(Arrays.asList(new ClusterServer("localhost", 1337), new ClusterServer("localhost", 1338)), "some-subscriber");
 subscriber.subscribe(TestChannelHandler.class);
 subscriber.subscribeMulti(BackendMultiChannelHandler.class);
 subscriber.subscribe(GsonChannelHandler.class);
