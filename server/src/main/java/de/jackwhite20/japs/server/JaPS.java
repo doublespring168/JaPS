@@ -22,9 +22,7 @@ package de.jackwhite20.japs.server;
 import de.jackwhite20.japs.client.sub.Subscriber;
 import de.jackwhite20.japs.server.command.Command;
 import de.jackwhite20.japs.server.command.CommandManager;
-import de.jackwhite20.japs.server.command.impl.EndCommand;
-import de.jackwhite20.japs.server.command.impl.HelpCommand;
-import de.jackwhite20.japs.server.command.impl.UnsubCommand;
+import de.jackwhite20.japs.server.command.impl.*;
 import de.jackwhite20.japs.server.command.impl.sub.SubCommand;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.logging.JaPSLogger;
@@ -91,6 +89,8 @@ public class JaPS {
         commandManager.addCommand(new SubCommand("sub", new String[]{"s", "subscribe"}, "Subscribe a channel and view it's data passing"));
         commandManager.addCommand(new UnsubCommand("unsub", new String[]{}, "Unsubscribe previous subscribed channels"));
         commandManager.addCommand(new EndCommand("end", new String[]{"stop"}, "Shutdown the server"));
+        commandManager.addCommand(new SetCommand("set", new String[]{"add"}, "Sets a key and value"));
+        commandManager.addCommand(new GetCommand("get", new String[]{}, "Gets a value from a key"));
 
         logger.info("Initialized");
     }
@@ -165,5 +165,10 @@ public class JaPS {
     public static Config getConfig() {
 
         return instance.config;
+    }
+
+    public JaPSServer getServer() {
+
+        return jaPSServer;
     }
 }

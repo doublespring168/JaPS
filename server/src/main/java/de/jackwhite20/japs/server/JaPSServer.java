@@ -303,7 +303,7 @@ public class JaPSServer implements Runnable {
         // Publish it to all clusters but exclude the server which has sent it
         // if it comes from another JaPS server but also publish it
         // if a normal publisher client has sent it
-        clusterPublisher.stream().filter(cl -> cl.connected && (connection.host() == null || (connection.host() != null && connection.port() != cl.port && !connection.host().equals(cl.host))))
+        clusterPublisher.stream().filter(cl -> cl.connected && ((connection == null || connection.host() == null) || (connection.host() != null && connection.port() != cl.port && !connection.host().equals(cl.host))))
                 .forEach(cl -> cl.write(data));
     }
 
