@@ -60,7 +60,7 @@ public abstract class NioSocketClient implements Runnable {
 
     private AtomicBoolean reconnecting = new AtomicBoolean(false);
 
-    private ConcurrentLinkedQueue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
+    private Queue<String> sendQueue = new ConcurrentLinkedQueue<>();
 
     protected String name;
 
@@ -82,11 +82,6 @@ public abstract class NioSocketClient implements Runnable {
     public NioSocketClient(List<ClusterServer> clusterServers) {
 
         this(clusterServers, "server");
-    }
-
-    public NioSocketClient(String host, int port) {
-
-        this(Collections.singletonList(new ClusterServer(host, port)));
     }
 
     public abstract void clientConnected();
@@ -138,7 +133,7 @@ public abstract class NioSocketClient implements Runnable {
 
         // Only queue up to 100 messages
         if (sendQueue.size() < 100) {
-            sendQueue.offer(jsonObject);
+            sendQueue.offer(jsonObject.toString());
         }
     }
 
@@ -348,12 +343,14 @@ public abstract class NioSocketClient implements Runnable {
 
                 try {
                     // Give the subscribers a chance to connect and register their channels first
-                    Thread.sleep(1100);
+                    Thread.sleep(800);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
 
-                sendQueue.forEach(NioSocketClient.this::write);
+                sendQueue.forEach(s -> write(new JSONObject(s)));
+
+                sendQueue.clear();
             }
 
             clientReconnected();

@@ -59,9 +59,9 @@ public class SetCommand extends Command {
             value = String.join(" ", values);
         }
 
-        JaPS.getInstance().getServer().cache().put(args[0], value);
+        JaPS.getServer().cache().put(args[0], value);
 
-        JaPS.getInstance().getServer().clusterBroadcast(null, new JSONObject()
+        JaPS.getServer().clusterBroadcast(null, new JSONObject()
                 .put("op", OpCode.OP_CACHE_ADD.getCode())
                 .put("key", args[0])
                 .put("value", value)

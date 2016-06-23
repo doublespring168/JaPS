@@ -39,7 +39,7 @@ public final class NameGeneratorUtil {
     /**
      * Generates a name from the name and the id.
      *
-     * The format looks like:
+     * The format looks like this:
      * subscriber-00001
      *
      * @param name The base name.

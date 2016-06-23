@@ -6,7 +6,7 @@ therefore I have decided to publish it here on GitHub.
 
 # Features
 
-- in-memory key-value cache (based on json, so class serialization available)
+- in-memory key-value cache (based on json, so class serialization possible)
 - channels
 - channel handler (json object and custom object)
 - key-value based handler method invocation
@@ -19,8 +19,8 @@ therefore I have decided to publish it here on GitHub.
 - lightweight
 - scalable
 - simple JSON
-- easy to implement in other languages (PHP publisher example at to bottom)
-- async publishing via the AsyncPublisher
+- easy to implement in other languages (PHP publisher example at the bottom)
+- async API support
 - full multi-core utilization and configurable number of threads
 - combine multiple JaPS server to a cluster
 - cluster failover with auto reconnect and sync
@@ -114,7 +114,7 @@ cache.getClass("test", fooBar -> System.out.println("Foo: " + fooBar.getFoo()), 
 // Removes the key from the cache
 cache.remove("json");
 
-// Disconnectes the cache client
+// Disconnects the cache client
 cache.disconnect();
 ```
 

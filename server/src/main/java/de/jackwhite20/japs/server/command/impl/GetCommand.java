@@ -42,7 +42,7 @@ public class GetCommand extends Command {
 
         String key = args[0];
 
-        System.out.println(key + "=" + JaPS.getInstance().getServer().cache().get(key));
+        System.out.println(key + "=" + JaPS.getServer().cache().get(key));
 
         return true;
     }

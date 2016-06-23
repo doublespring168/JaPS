@@ -190,7 +190,7 @@ public class Connection {
 
                         send(getResponse.toString());
 
-                        LOGGER.log(Level.FINE, "[{0}] Got cache entry {1}={2} and an callback id of {3}", new Object[] {remoteAddress.toString(), getKey, getValue, getCallbackId});
+                        LOGGER.log(Level.FINE, "[{0}] Got cache entry {1}={2} and a callback id of {3}", new Object[] {remoteAddress.toString(), getKey, getValue, getCallbackId});
                         break;
                     case OP_CACHE_ADD:
                         String key = jsonObject.getString("key");

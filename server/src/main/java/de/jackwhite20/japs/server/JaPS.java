@@ -167,8 +167,8 @@ public class JaPS {
         return instance.config;
     }
 
-    public JaPSServer getServer() {
+    public static JaPSServer getServer() {
 
-        return jaPSServer;
+        return instance.jaPSServer;
     }
 }
