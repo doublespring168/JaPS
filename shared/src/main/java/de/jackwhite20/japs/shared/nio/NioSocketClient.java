@@ -66,6 +66,9 @@ public abstract class NioSocketClient implements Runnable {
 
     public NioSocketClient(List<ClusterServer> clusterServers, String name) {
 
+        // Randomize the list to give a chance for a better use of the cluster
+        Collections.shuffle(clusterServers);
+
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("name cannot be null or empty");
         }

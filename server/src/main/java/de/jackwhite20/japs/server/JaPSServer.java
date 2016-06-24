@@ -81,13 +81,13 @@ public class JaPSServer implements Runnable {
 
     private JaPSCache cache;
 
-    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval) {
+    public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval, int snapshotInterval) {
 
         this.host = host;
         this.port = port;
         this.backlog = backlog;
         this.workerThreads = workerThreads;
-        this.cache = new JaPSCache(cleanupInterval);
+        this.cache = new JaPSCache(cleanupInterval, snapshotInterval);
 
         LOGGER.setLevel((debug) ? Level.FINE : Level.INFO);
 
@@ -149,7 +149,7 @@ public class JaPSServer implements Runnable {
 
     public JaPSServer(Config config) {
 
-        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster(), config.cleanupInterval());
+        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster(), config.cleanupInterval(), config.snapshotInterval());
     }
 
     private void start() {

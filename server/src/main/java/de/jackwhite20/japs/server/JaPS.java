@@ -91,6 +91,8 @@ public class JaPS {
         commandManager.addCommand(new EndCommand("end", new String[]{"stop"}, "Shutdown the server"));
         commandManager.addCommand(new SetCommand("set", new String[]{"add"}, "Sets a key and value"));
         commandManager.addCommand(new GetCommand("get", new String[]{}, "Gets a value from a key"));
+        commandManager.addCommand(new DeleteCommand("delete", new String[]{"remove", "del", "rm"}, "Gets a value from a key"));
+        commandManager.addCommand(new SnapshotCommand("snapshot", new String[]{}, "Takes a memory snapshot"));
 
         logger.info("Initialized");
     }

@@ -10,5 +10,6 @@
       "port": 1338
     }
   ],
-  "cleanupInterval": 300
+  "cleanupInterval": 300,
+  "snapshotInterval": -1
 }

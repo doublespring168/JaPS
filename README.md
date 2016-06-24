@@ -4,9 +4,12 @@ JaPS is a robust and lightweight Java Pub/Sub library and in-memory key-value ca
 I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well,
 therefore I have decided to publish it here on GitHub.
 
+JaPS now has also memory snapshot support to create a backup of cached data or to use it as a "persistent" memory database.
+
 # Features
 
 - in-memory key-value cache (based on json, so class serialization possible)
+- cache memory snapshots
 - channels
 - channel handler (json object and custom object)
 - key-value based handler method invocation
@@ -69,6 +72,15 @@ _With debugging and with cluster setup:_
 
 ```
 java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d
+```
+
+_Set the check (ci) or snapshot (si) interval:_
+
+```
+// Both are in seconds
+// This will check the cache for expired entries every 10 minutes
+// and will take a memory snapshot (backup) every hour
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d -ci 600 -si 3600
 ```
 
 # API examples

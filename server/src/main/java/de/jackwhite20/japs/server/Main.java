@@ -52,6 +52,8 @@ public class Main {
             options.addOption("t", true, "Worker thread count");
             options.addOption("d", false, "If debug is enabled or not");
             options.addOption("c", true, "Add server as a cluster");
+            options.addOption("ci", true, "Sets the cache check interval");
+            options.addOption("si", true, "Sets the snapshot interval");
 
             CommandLineParser commandLineParser = new BasicParser();
             CommandLine commandLine = commandLineParser.parse(options, args);
@@ -67,7 +69,14 @@ public class Main {
                     }
                 }
 
-                config = new Config(commandLine.getOptionValue("h"), Integer.parseInt(commandLine.getOptionValue("p")), Integer.parseInt(commandLine.getOptionValue("b")), commandLine.hasOption("d"), Integer.parseInt(commandLine.getOptionValue("t")), clusterServers, 300);
+                config = new Config(commandLine.getOptionValue("h"),
+                        Integer.parseInt(commandLine.getOptionValue("p")),
+                        Integer.parseInt(commandLine.getOptionValue("b")),
+                        commandLine.hasOption("d"),
+                        Integer.parseInt(commandLine.getOptionValue("t")),
+                        clusterServers,
+                        (commandLine.hasOption("ci")) ? Integer.parseInt(commandLine.getOptionValue("ci")) : 300,
+                        (commandLine.hasOption("si")) ? Integer.parseInt(commandLine.getOptionValue("si")) : -1);
             } else {
                 System.out.println("Usage: java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-c IP:Port IP:Port] [-d]");
                 System.out.println("Example (with debugging enabled): java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d");

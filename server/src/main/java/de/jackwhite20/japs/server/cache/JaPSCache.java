@@ -21,7 +21,13 @@ package de.jackwhite20.japs.server.cache;
 
 import de.jackwhite20.japs.server.JaPS;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -35,17 +41,34 @@ import java.util.logging.Logger;
  */
 public class JaPSCache {
 
+    private static final String SNAPSHOT_FORMAT = "JaPS memory snapshot format v.0.0.1";
+
     private Logger logger = JaPS.getLogger();
 
     private Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService executorService;
 
-    public JaPSCache(int cleanupInterval) {
+    public JaPSCache(int cleanupInterval, int snapshotInterval) {
 
         if (cleanupInterval > 0) {
             executorService = Executors.newScheduledThreadPool(1);
             executorService.scheduleAtFixedRate(this::cleanup, cleanupInterval, cleanupInterval, TimeUnit.SECONDS);
+        }
+
+        if (snapshotInterval > 0) {
+            File snapshotsFolder = new File("snapshots");
+            if (!snapshotsFolder.exists()) {
+                if (!snapshotsFolder.mkdir()) {
+                    throw new IllegalStateException("cannot create 'snapshots' folder");
+                }
+            }
+
+            if (executorService == null) {
+                executorService = Executors.newScheduledThreadPool(1);
+            }
+
+            executorService.scheduleAtFixedRate(this::snapshot, snapshotInterval, snapshotInterval, TimeUnit.SECONDS);
         }
     }
 
@@ -60,6 +83,70 @@ public class JaPSCache {
 
                 logger.log(Level.FINE, "[Cache] Value '" + cacheEntry.value() + "' has been removed from the cache");
             }
+        }
+    }
+
+    public void snapshot() {
+
+        if (cache.size() > 0) {
+            File file = Paths.get("snapshots", "snapshot.japs").toFile();
+
+            JaPS.getLogger().log(Level.INFO, "[Cache] Creating snapshot from {0} entries", cache.size());
+
+            // TODO: 24.06.2016 Make a copy of the current cache or not?
+            Map<String, CacheEntry> currentCache = new HashMap<>(cache);
+
+            try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file))) {
+                bufferedWriter.write(SNAPSHOT_FORMAT);
+                bufferedWriter.newLine();
+                for (Map.Entry<String, CacheEntry> cacheEntry : currentCache.entrySet()) {
+                    bufferedWriter.write(cacheEntry.getKey());
+                    bufferedWriter.write("=");
+                    bufferedWriter.write(cacheEntry.getValue().value().toString());
+                    bufferedWriter.write("=");
+                    bufferedWriter.write(String.valueOf(cacheEntry.getValue().expireBy()));
+                    bufferedWriter.newLine();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            JaPS.getLogger().info("Snapshot saved in 'snapshots' folder");
+        }
+    }
+
+    public void loadSnapshot(String path) {
+
+        Path file = Paths.get(path);
+
+        JaPS.getLogger().log(Level.INFO, "[Cache] Loading snapshot from {0}", path);
+
+        try {
+            List<String> lines = Files.readAllLines(file);
+            if (lines.size() == 0) {
+                JaPS.getLogger().log(Level.SEVERE, "Snapshot file is empty!");
+            }
+
+            if (!lines.get(0).equals(SNAPSHOT_FORMAT)) {
+                JaPS.getLogger().log(Level.SEVERE, "Invalid snapshot format version!");
+            }
+
+            for (int i = 1; i < lines.size(); i++) {
+                String[] splitted = lines.get(i).split("=");
+                if (splitted.length != 3) {
+                    JaPS.getLogger().log(Level.SEVERE, "Invalid file format!");
+                    break;
+                }
+                String key = splitted[0];
+                String value = splitted[1];
+                String expire = splitted[2];
+
+                cache.put(key, new CacheEntry(Long.parseLong(expire), value));
+            }
+
+            JaPS.getLogger().log(Level.INFO, "[Cache] Loaded {0} entries fom snapshot file", lines.size() - 1);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

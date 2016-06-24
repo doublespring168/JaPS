@@ -42,7 +42,9 @@ public class Config {
 
     private int cleanupInterval = -1;
 
-    public Config(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval) {
+    private int snapshotInterval = -1;
+
+    public Config(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval, int snapshotInterval) {
 
         this.host = host;
         this.port = port;
@@ -51,6 +53,7 @@ public class Config {
         this.workerThreads = workerThreads;
         this.cluster = cluster;
         this.cleanupInterval = cleanupInterval;
+        this.snapshotInterval = snapshotInterval;
     }
 
     public String host() {
@@ -88,6 +91,11 @@ public class Config {
         return cleanupInterval;
     }
 
+    public int snapshotInterval() {
+
+        return snapshotInterval;
+    }
+
     @Override
     public String toString() {
 
@@ -99,6 +107,7 @@ public class Config {
                 ", workerThreads=" + workerThreads +
                 ", cluster=" + cluster +
                 ", cleanupInterval=" + cleanupInterval +
+                ", snapshotInterval=" + snapshotInterval +
                 '}';
     }
 }
