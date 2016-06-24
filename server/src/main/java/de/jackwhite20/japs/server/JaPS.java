@@ -28,6 +28,8 @@ import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.logging.JaPSLogger;
 import de.jackwhite20.japs.server.logging.out.LoggingOutputStream;
 import jline.console.ConsoleReader;
+import jline.console.completer.FileNameCompleter;
+import jline.console.completer.StringsCompleter;
 import org.fusesource.jansi.AnsiConsole;
 
 import java.io.IOException;
@@ -36,6 +38,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -93,6 +96,12 @@ public class JaPS {
         commandManager.addCommand(new GetCommand("get", new String[]{}, "Gets a value from a key"));
         commandManager.addCommand(new DeleteCommand("delete", new String[]{"remove", "del", "rm"}, "Gets a value from a key"));
         commandManager.addCommand(new SnapshotCommand("snapshot", new String[]{}, "Takes a memory snapshot"));
+
+        // Autocomplete commands
+        consoleReader.addCompleter(new StringsCompleter(commandManager.getCommands().stream().map(Command::getName).collect(Collectors.toList())));
+
+        // Autocomplete files
+        consoleReader.addCompleter(new FileNameCompleter());
 
         logger.info("Initialized");
     }
