@@ -1,3 +1,5 @@
+de.jackwhite20.japs.client.cache
+de.jackwhite20.japs.client.cache.impl
 de.jackwhite20.japs.client.pub
 de.jackwhite20.japs.client.pub.impl
 de.jackwhite20.japs.client.sub
@@ -5,3 +7,16 @@ de.jackwhite20.japs.client.sub.impl
 de.jackwhite20.japs.client.sub.impl.handler
 de.jackwhite20.japs.client.sub.impl.handler.annotation
 de.jackwhite20.japs.client.util
+de.jackwhite20.japs.server
+de.jackwhite20.japs.server.cache
+de.jackwhite20.japs.server.command
+de.jackwhite20.japs.server.command.impl
+de.jackwhite20.japs.server.command.impl.sub
+de.jackwhite20.japs.server.config
+de.jackwhite20.japs.server.logging
+de.jackwhite20.japs.server.logging.out
+de.jackwhite20.japs.server.network
+de.jackwhite20.japs.server.util
+de.jackwhite20.japs.shared.config
+de.jackwhite20.japs.shared.net
+de.jackwhite20.japs.shared.nio
