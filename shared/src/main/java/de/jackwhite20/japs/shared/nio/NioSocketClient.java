@@ -351,8 +351,9 @@ public abstract class NioSocketClient implements Runnable {
                     e.printStackTrace();
                 }
 
-                sendQueue.forEach(s -> write(new JSONObject(s)));
+                sendQueue.forEach(s -> write(new JSONObject(s), false));
 
+                // Clear the queue to avoid duplicated messages
                 sendQueue.clear();
             }
 

@@ -40,6 +40,7 @@ JaPS now has also memory snapshot support to create a backup of cached data or t
 **Maven dependencies**
 
 _Client:_
+
 ```xml
 <dependency>
     <groupId>de.jackwhite20</groupId>
