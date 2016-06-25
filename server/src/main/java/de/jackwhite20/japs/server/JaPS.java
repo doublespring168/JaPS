@@ -131,7 +131,7 @@ public class JaPS {
                 Command command = commandManager.findCommand(commandName);
 
                 if (command != null) {
-                    logger.log(Level.INFO, "Executing command: " + command.getName());
+                    logger.log(Level.INFO, "Executing command: {0}", line);
 
                     String[] cmdArgs = Arrays.copyOfRange(split, 1, split.length);
                     command.execute(cmdArgs);

@@ -57,18 +57,18 @@ public class JaPSCache {
         }
 
         if (snapshotInterval > 0) {
-            File snapshotsFolder = new File("snapshots");
-            if (!snapshotsFolder.exists()) {
-                if (!snapshotsFolder.mkdir()) {
-                    throw new IllegalStateException("cannot create 'snapshots' folder");
-                }
-            }
-
             if (executorService == null) {
                 executorService = Executors.newScheduledThreadPool(1);
             }
 
             executorService.scheduleAtFixedRate(this::snapshot, snapshotInterval, snapshotInterval, TimeUnit.SECONDS);
+        }
+
+        File snapshotsFolder = new File("snapshots");
+        if (!snapshotsFolder.exists()) {
+            if (!snapshotsFolder.mkdir()) {
+                throw new IllegalStateException("cannot create 'snapshots' folder");
+            }
         }
     }
 
@@ -89,11 +89,15 @@ public class JaPSCache {
     public void snapshot() {
 
         if (cache.size() > 0) {
-            File file = Paths.get("snapshots", "snapshot.japs").toFile();
+            File file = Paths.get("snapshots", "snapshot-0.japs").toFile();
+
+            int id = 0;
+            while (file.exists()) {
+                file = new File("snapshots/snapshot-" + (id++) + ".japs");
+            }
 
             JaPS.getLogger().log(Level.INFO, "[Cache] Creating snapshot from {0} entries", cache.size());
 
-            // TODO: 24.06.2016 Make a copy of the current cache or not?
             Map<String, CacheEntry> currentCache = new HashMap<>(cache);
 
             try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file))) {
@@ -111,7 +115,7 @@ public class JaPSCache {
                 e.printStackTrace();
             }
 
-            JaPS.getLogger().info("Snapshot saved in 'snapshots' folder");
+            JaPS.getLogger().log(Level.INFO, "Snapshot {0} saved in 'snapshots' folder", file.getName());
         }
     }
 
