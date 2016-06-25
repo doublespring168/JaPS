@@ -17,30 +17,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.client.util;
+package de.jackwhite20.japs.server.cache;
 
 /**
- * Created by JackWhite20 on 04.05.2016.
+ * Created by JackWhite20 on 13.06.2016.
  */
-public class ClusterServer {
+public class CacheEntry {
 
-    private String host;
+    private long expireBy;
 
-    private int port;
+    private Object value;
 
-    public ClusterServer(String host, int port) {
+    public CacheEntry(long expireBy, Object value) {
 
-        this.host = host;
-        this.port = port;
+        this.expireBy = expireBy;
+        this.value = value;
     }
 
-    public String host() {
+    public long expireBy() {
 
-        return host;
+        return expireBy;
     }
 
-    public int port() {
+    public void expireBy(long expireBy) {
 
-        return port;
+        this.expireBy = expireBy;
+    }
+
+    public Object value() {
+
+        return value;
     }
 }

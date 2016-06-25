@@ -19,16 +19,17 @@
 
 package de.jackwhite20.japs.server;
 
+import de.jackwhite20.japs.client.sub.Subscriber;
 import de.jackwhite20.japs.server.command.Command;
 import de.jackwhite20.japs.server.command.CommandManager;
-import de.jackwhite20.japs.server.command.impl.EndCommand;
-import de.jackwhite20.japs.server.command.impl.HelpCommand;
-import de.jackwhite20.japs.server.command.impl.UnsubCommand;
+import de.jackwhite20.japs.server.command.impl.*;
 import de.jackwhite20.japs.server.command.impl.sub.SubCommand;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.logging.JaPSLogger;
 import de.jackwhite20.japs.server.logging.out.LoggingOutputStream;
 import jline.console.ConsoleReader;
+import jline.console.completer.FileNameCompleter;
+import jline.console.completer.StringsCompleter;
 import org.fusesource.jansi.AnsiConsole;
 
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
@@ -90,6 +92,16 @@ public class JaPS {
         commandManager.addCommand(new SubCommand("sub", new String[]{"s", "subscribe"}, "Subscribe a channel and view it's data passing"));
         commandManager.addCommand(new UnsubCommand("unsub", new String[]{}, "Unsubscribe previous subscribed channels"));
         commandManager.addCommand(new EndCommand("end", new String[]{"stop"}, "Shutdown the server"));
+        commandManager.addCommand(new SetCommand("set", new String[]{"add"}, "Sets a key and value"));
+        commandManager.addCommand(new GetCommand("get", new String[]{}, "Gets a value from a key"));
+        commandManager.addCommand(new DeleteCommand("delete", new String[]{"remove", "del", "rm"}, "Gets a value from a key"));
+        commandManager.addCommand(new SnapshotCommand("snapshot", new String[]{}, "Takes a memory snapshot"));
+
+        // Autocomplete commands
+        consoleReader.addCompleter(new StringsCompleter(commandManager.getCommands().stream().map(Command::getName).collect(Collectors.toList())));
+
+        // Autocomplete files
+        consoleReader.addCompleter(new FileNameCompleter());
 
         logger.info("Initialized");
     }
@@ -119,7 +131,7 @@ public class JaPS {
                 Command command = commandManager.findCommand(commandName);
 
                 if (command != null) {
-                    logger.log(Level.INFO, "Executing command: " + command.getName());
+                    logger.log(Level.INFO, "Executing command: {0}", line);
 
                     String[] cmdArgs = Arrays.copyOfRange(split, 1, split.length);
                     command.execute(cmdArgs);
@@ -133,6 +145,11 @@ public class JaPS {
     public void stop() {
 
         running = false;
+
+        // Disconnect all self subscriptions
+        for (Subscriber subscriber : SubCommand.SUBSCRIBERS) {
+            subscriber.disconnect(true);
+        }
 
         // Try to close faithfully
         jaPSServer.stop();
@@ -154,5 +171,15 @@ public class JaPS {
     public static CommandManager getCommandManager() {
 
         return instance.commandManager;
+    }
+
+    public static Config getConfig() {
+
+        return instance.config;
+    }
+
+    public static JaPSServer getServer() {
+
+        return instance.jaPSServer;
     }
 }

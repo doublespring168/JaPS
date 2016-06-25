@@ -1,11 +1,15 @@
 # JaPS
-JaPS is a robust and lightweight Java Pub/Sub library which uses JSON.
+JaPS is a robust and lightweight Java Pub/Sub library and in-memory key-value cache which uses JSON.
 
 I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well,
 therefore I have decided to publish it here on GitHub.
 
+JaPS now has also memory snapshot support to create a backup of cached data or to use it as a "persistent" memory database.
+
 # Features
 
+- in-memory key-value cache (based on json, so class serialization possible)
+- cache memory snapshots
 - channels
 - channel handler (json object and custom object)
 - key-value based handler method invocation
@@ -18,8 +22,8 @@ therefore I have decided to publish it here on GitHub.
 - lightweight
 - scalable
 - simple JSON
-- easy to implement in other languages (PHP publisher example at to bottom)
-- async publishing via the AsyncPublisher
+- easy to implement in other languages (PHP publisher example at the bottom)
+- async API support
 - full multi-core utilization and configurable number of threads
 - combine multiple JaPS server to a cluster
 - cluster failover with auto reconnect and sync
@@ -36,21 +40,104 @@ therefore I have decided to publish it here on GitHub.
 **Maven dependencies**
 
 _Client:_
+
 ```xml
 <dependency>
     <groupId>de.jackwhite20</groupId>
     <artifactId>japs-client</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>2.2.0-SNAPSHOT</version>
 </dependency>
 ```
 
-# Quick start
+# Server start with the CLI
+
+_General syntax:_
+
+```
+java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-c IP:Port IP:Port] [-d]
+```
+
+_Without debugging and without cluster setup:_
+
+```
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4
+```
+
+_With debugging and without cluster setup:_
+
+```
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d
+```
+
+_With debugging and with cluster setup:_
+
+```
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d
+```
+
+_Set the check (ci) or snapshot (si) interval:_
+
+```
+// Both are in seconds
+// This will check the cache for expired entries every 10 minutes
+// and will take a memory snapshot (backup) every hour
+java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d -ci 600 -si 3600
+```
+
+# API examples
+
+_Cache:_
+```java
+PubSubCache cache = PubSubCacheFactory.create("localhost", 1337);
+// To create a pub sub cache from a cluster
+//PubSubCache cache = PubSubCacheFactory.create(Arrays.asList(new ClusterServer("localhost", 1337), new ClusterServer("localhost", 1338)));
+
+cache.put("json", new JSONObject().put("foo", "bar"));
+cache.get("json", jsonObject -> System.out.println("Foo: " + jsonObject.get("foo")));
+cache.async().get("json", jsonObject -> System.out.println("Foo: " + jsonObject.get("foo")));
+
+// The class needs to implement the 'Cacheable' interface to be serialized to json
+// Key will expire in 5 seconds
+cache.put("test", new FooBar("Some text"), 5);
+cache.get("test", json -> System.out.println("FooBar class: " + json.toString()));
+
+// Gets the time in seconds how long the key lives until it's expired
+cache.expire("test", System.out::println);
+
+try {
+	Thread.sleep(1000);
+} catch (InterruptedException e) {
+	e.printStackTrace();
+}
+
+cache.expire("test", System.out::println);
+
+// Gets the class instance of the given class from the key
+cache.getClass("test", fooBar -> System.out.println("Foo: " + fooBar.getFoo()), FooBar.class);
+// The same as above but without lambda
+/*cache.getClass("test", new Consumer<FooBar>() {
+
+	@Override
+	public void accept(FooBar fooBar) {
+
+		System.out.println(fooBar);
+	}
+}, FooBar.class);*/
+
+// Removes the key from the cache
+cache.remove("json");
+
+// Disconnects the cache client
+cache.disconnect();
+```
 
 If you want to use the javadoc you can browse it [here](https://jackwhite20.github.io/JaPS/doc/).
 
 _Publisher:_
 ```java
 Publisher publisher = PublisherFactory.create("localhost", 1337);
+// To create a publisher from a cluster
+//Publisher publisher = PublisherFactory.create(Arrays.asList(new ClusterServer("localhost", 1337), new ClusterServer("localhost", 1338)));
 
 JSONObject fooBar = new JSONObject();
 fooBar.put("foo", "bar");
@@ -94,6 +181,8 @@ publisher.disconnect(true);
 _Subscriber:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337);
+// To create a subscriber from a cluster
+//Subscriber subscriber = SubscriberFactory.create(Arrays.asList(new ClusterServer("localhost", 1337), new ClusterServer("localhost", 1338)), "some-subscriber");
 subscriber.subscribe(TestChannelHandler.class);
 subscriber.subscribeMulti(BackendMultiChannelHandler.class);
 subscriber.subscribe(GsonChannelHandler.class);
@@ -107,7 +196,7 @@ subscriber.disconnect(true);
 _Subscriber with defined name:_
 ```java
 Subscriber subscriber = SubscriberFactory.create("localhost", 1337, "some-subscriber");
-subscriber.subscribe("test", TestChannelHandler.class);
+subscriber.subscribe(TestChannelHandler.class);
 ```
 
 _TestChannelHandler:_
@@ -167,6 +256,11 @@ public class FooBar {
     public FooBar(String foo) {
 
         this.foo = foo;
+    }
+
+	public String getFoo() {
+
+        return foo;
     }
 
     @Override

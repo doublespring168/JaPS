@@ -28,55 +28,27 @@ import de.jackwhite20.japs.client.sub.impl.handler.MultiHandlerInfo;
 import de.jackwhite20.japs.client.sub.impl.handler.annotation.Channel;
 import de.jackwhite20.japs.client.sub.impl.handler.annotation.Key;
 import de.jackwhite20.japs.client.sub.impl.handler.annotation.Value;
-import de.jackwhite20.japs.client.util.ClusterServer;
 import de.jackwhite20.japs.client.util.NameGeneratorUtil;
+import de.jackwhite20.japs.shared.config.ClusterServer;
+import de.jackwhite20.japs.shared.net.OpCode;
+import de.jackwhite20.japs.shared.nio.NioSocketClient;
 import org.json.JSONObject;
 
-import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class SubscriberImpl implements Subscriber, Runnable {
+public class SubscriberImpl extends NioSocketClient implements Subscriber, Runnable {
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
-    private static final int BUFFER_SIZE = 4096;
+    private Map<String, HandlerInfo> handlers = new HashMap<>();
 
-    private static final int OP_SUBSCRIBE = 0;
-
-    private static final int OP_UNSUBSCRIBE = 1;
-
-    private static final int OP_NAME = 3;
-
-    private boolean connected;
-
-    private String name;
-
-    private List<ClusterServer> clusterServers;
-
-    private int clusterServerIndex = 0;
-
-    private SocketChannel socketChannel;
-
-    private Selector selector;
-
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-
-    private static Map<String, HandlerInfo> handlers = new HashMap<>();
-
-    private static Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
-
-    private long reconnectPause = 0;
+    private Map<String, MultiHandlerInfo> multiHandlers = new HashMap<>();
 
     private Gson gson = new Gson();
 
@@ -97,123 +69,84 @@ public class SubscriberImpl implements Subscriber, Runnable {
 
     public SubscriberImpl(List<ClusterServer> clusterServers, String name) {
 
-        if (clusterServers == null || clusterServers.isEmpty()) {
-            throw new IllegalArgumentException("clusterServers cannot be null or empty");
-        }
-
-        if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("name cannot be null or empty");
-        }
-
-        this.clusterServers = clusterServers;
-        this.name = name;
-
-        // Get the first cluster server info
-        String firstHost = clusterServers.get(clusterServerIndex).host();
-        int firstPort = clusterServers.get(clusterServerIndex).port();
-
-        // Try to connect
-        connect(firstHost, firstPort);
+        super(clusterServers, name);
     }
 
-    private boolean connect(String host, int port) {
+    @Override
+    public void clientConnected() {
 
-        try {
-            selector = Selector.open();
-            socketChannel = SocketChannel.open();
+        // Register with our name
+        write(new JSONObject()
+                .put("op", OpCode.OP_SUBSCRIBER_SET_NAME.getCode())
+                .put("su", name));
+    }
 
-            // Disable the Nagle algorithm
-            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            // Try to connect to the host and port in blocking mode
-            socketChannel.connect(new InetSocketAddress(host, port));
-            socketChannel.finishConnect();
+    @Override
+    public void clientReconnected() {
 
-            // Register with our name
-            write(new JSONObject().put("op", OP_NAME).put("su", name).toString());
-
-            // Resend the subscribed channels if we have lost connection before
+        if (handlers != null) {
+            // Resubscribe the normal handlers
             for (Map.Entry<String, HandlerInfo> handlerInfoEntry : handlers.entrySet()) {
                 subscribe(handlerInfoEntry.getValue().messageHandler().getClass());
             }
+        }
 
+        if (multiHandlers != null) {
+            // Resubscribe the multi handlers
             for (Map.Entry<String, MultiHandlerInfo> handlerInfoEntry : multiHandlers.entrySet()) {
                 subscribeMulti(handlerInfoEntry.getValue().object().getClass());
             }
-
-            // Set non blocking and register the read event
-            socketChannel.configureBlocking(false);
-            socketChannel.register(selector, SelectionKey.OP_READ);
-
-            Thread subThread = new Thread(this);
-            subThread.setName("Subscriber Thread");
-            subThread.start();
-
-            return true;
-        } catch (Exception ignore) {
-            closeSocket();
-            reconnect();
-        }
-
-        return false;
-    }
-
-    private void reconnect() {
-
-        if (reconnectPause > 0) {
-            try {
-                Thread.sleep(reconnectPause);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        clusterServerIndex++;
-        if (reconnectPause < 1000) {
-            reconnectPause += 100;
-        }
-
-        if (clusterServers.size() == clusterServerIndex) {
-            clusterServerIndex = 0;
-        }
-
-        ClusterServer clusterServer = clusterServers.get(clusterServerIndex);
-        connect(clusterServer.host(), clusterServer.port());
-    }
-
-    private void closeSocket() {
-
-        if (selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 
-    private void write(String data) {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void received(JSONObject jsonObject) {
 
-        try {
-            // Send the json data and prepend the length
-            byte[] bytes = data.getBytes("UTF-8");
-            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
-            byteBuffer.putInt(bytes.length);
-            byteBuffer.put(bytes);
+        String channel = ((String) jsonObject.remove("ch"));
 
-            // Prepare the buffer for writing
-            byteBuffer.flip();
+        if (channel == null || channel.isEmpty()) {
+            return;
+        }
 
-            socketChannel.write(byteBuffer);
-        } catch (IOException e) {
-            e.printStackTrace();
+        HandlerInfo handlerInfo = handlers.get(channel);
+
+        if (handlerInfo != null) {
+            if (handlerInfo.classType() == ClassType.JSON) {
+                handlerInfo.messageHandler().onMessage(channel, jsonObject);
+            } else {
+                handlerInfo.messageHandler().onMessage(channel, gson.fromJson(jsonObject.toString(), handlerInfo.clazz()));
+            }
+        } else {
+            MultiHandlerInfo multiHandlerInfo = multiHandlers.get(channel);
+
+            if (multiHandlerInfo != null) {
+                //noinspection Convert2streamapi
+                for (MultiHandlerInfo.Entry entry : multiHandlerInfo.entries()) {
+                    if (!jsonObject.isNull(entry.key().value())) {
+                        if (jsonObject.get(entry.key().value()).equals(entry.value().value())) {
+                            // Remove matched key value pair
+                            jsonObject.remove(entry.key().value());
+
+                            if (entry.classType() == ClassType.JSON) {
+                                try {
+                                    // Invoke the matching method
+                                    entry.method().invoke(multiHandlerInfo.object(), jsonObject);
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                try {
+                                    // Deserialize with gson
+                                    entry.method().invoke(multiHandlerInfo.object(), gson.fromJson(jsonObject.toString(), entry.paramClass()));
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -235,16 +168,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
     @Override
     public void disconnect(boolean force) {
 
-        if (connected) {
-            connected = false;
-
-            // Close selector and the socket channel
-            closeSocket();
-
-            if (!force) {
-                reconnect();
-            }
-        }
+        close(force);
     }
 
     @Override
@@ -259,6 +183,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
         return handlers.containsKey(channel) || multiHandlers.containsKey(channel);
     }
 
+    @Deprecated
     @Override
     public void subscribe(String channel, Class<? extends ChannelHandler> handler) {
 
@@ -267,10 +192,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
             handlers.put(channel, new HandlerInfo(handler.newInstance()));
 
             JSONObject jsonObject = new JSONObject()
-                    .put("op", OP_SUBSCRIBE)
+                    .put("op", OpCode.OP_REGISTER_CHANNEL.getCode())
                     .put("ch", channel);
 
-            write(jsonObject.toString());
+            write(jsonObject, false);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -282,6 +207,7 @@ public class SubscriberImpl implements Subscriber, Runnable {
         // Get channel and check the class for annotation etc.
         String channel = getChannelFromAnnotation(handler);
 
+        //noinspection deprecation
         subscribe(channel, handler);
     }
 
@@ -306,10 +232,10 @@ public class SubscriberImpl implements Subscriber, Runnable {
             multiHandlers.put(channel, new MultiHandlerInfo(entries, object));
 
             JSONObject jsonObject = new JSONObject()
-                    .put("op", OP_SUBSCRIBE)
+                    .put("op", OpCode.OP_REGISTER_CHANNEL.getCode())
                     .put("ch", channel);
 
-            write(jsonObject.toString());
+            write(jsonObject, false);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -324,17 +250,17 @@ public class SubscriberImpl implements Subscriber, Runnable {
             multiHandlers.remove(channel);
 
             JSONObject jsonObject = new JSONObject()
-                    .put("op", OP_UNSUBSCRIBE)
+                    .put("op", OpCode.OP_UNREGISTER_CHANNEL.getCode())
                     .put("ch", channel);
 
-            write(jsonObject.toString());
+            write(jsonObject);
         }
     }
 
     @Override
     public boolean connected() {
 
-        return connected;
+        return isConnected();
     }
 
     @Override
@@ -343,106 +269,9 @@ public class SubscriberImpl implements Subscriber, Runnable {
         return name;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void run() {
+    public List<ClusterServer> clusterServers() {
 
-        connected = true;
-
-        while (connected) {
-            try {
-                if (selector.select() == 0) {
-                    continue;
-                }
-
-                Set<SelectionKey> keys = selector.selectedKeys();
-                Iterator<SelectionKey> keyIterator = keys.iterator();
-
-                while (keyIterator.hasNext()) {
-                    SelectionKey key = keyIterator.next();
-
-                    keyIterator.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    if (key.isReadable()) {
-                        int read = socketChannel.read(byteBuffer);
-
-                        if (read == -1) {
-                            disconnect(false);
-                            return;
-                        }
-
-                        byteBuffer.flip();
-
-                        while (byteBuffer.remaining() > 0) {
-                            byteBuffer.mark();
-
-                            if (byteBuffer.remaining() < 4) {
-                                break;
-                            }
-
-                            int readable = byteBuffer.getInt();
-                            if (byteBuffer.remaining() < readable) {
-                                byteBuffer.reset();
-                                break;
-                            }
-
-                            byte[] bytes = new byte[readable];
-                            byteBuffer.get(bytes);
-
-                            String json = new String(bytes, "UTF-8");
-
-                            JSONObject jsonObject = new JSONObject(json);
-
-                            String channel = ((String) jsonObject.remove("ch"));
-
-                            if (channel == null || channel.isEmpty()) {
-                                continue;
-                            }
-
-                            HandlerInfo handlerInfo = handlers.get(channel);
-
-                            if (handlerInfo != null) {
-                                if (handlerInfo.classType() == ClassType.JSON) {
-                                    handlerInfo.messageHandler().onMessage(channel, jsonObject);
-                                } else {
-                                    handlerInfo.messageHandler().onMessage(channel, gson.fromJson(jsonObject.toString(), handlerInfo.clazz()));
-                                }
-                            } else {
-                                MultiHandlerInfo multiHandlerInfo = multiHandlers.get(channel);
-
-                                if (multiHandlerInfo != null) {
-                                    for (MultiHandlerInfo.Entry entry : multiHandlerInfo.entries()) {
-                                        if (!jsonObject.isNull(entry.key().value())) {
-                                            if (jsonObject.get(entry.key().value()).equals(entry.value().value())) {
-                                                // Remove matched key value pair
-                                                jsonObject.remove(entry.key().value());
-
-                                                if (entry.classType() == ClassType.JSON) {
-                                                    // Invoke the matching method
-                                                    entry.method().invoke(multiHandlerInfo.object(), jsonObject);
-                                                } else {
-                                                    // Deserialize with gson
-                                                    entry.method().invoke(multiHandlerInfo.object(), gson.fromJson(jsonObject.toString(), entry.paramClass()));
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        byteBuffer.compact();
-                    }
-                }
-            } catch (Exception ignore) {
-                disconnect(false);
-            }
-        }
-
-        disconnect(true);
+        return Collections.unmodifiableList(super.clusterServers());
     }
 }

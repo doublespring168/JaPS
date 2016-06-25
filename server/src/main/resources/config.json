@@ -7,7 +7,9 @@
   "cluster": [
     {
       "host": "localhost",
-      "port": 1337
+      "port": 1338
     }
-  ]
+  ],
+  "cleanupInterval": 300,
+  "snapshotInterval": -1
 }

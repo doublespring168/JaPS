@@ -22,48 +22,27 @@ package de.jackwhite20.japs.client.pub.impl;
 import com.google.gson.Gson;
 import de.jackwhite20.japs.client.pub.AsyncPublisher;
 import de.jackwhite20.japs.client.pub.Publisher;
-import de.jackwhite20.japs.client.util.ClusterServer;
+import de.jackwhite20.japs.shared.config.ClusterServer;
+import de.jackwhite20.japs.shared.net.OpCode;
+import de.jackwhite20.japs.shared.nio.NioSocketClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class PublisherImpl implements Publisher {
-
-    private static final long KEEP_ALIVE_TIME = 1000;
-
-    private boolean connected;
-
-    private List<ClusterServer> clusterServers;
-
-    private int clusterServerIndex = 0;
-
-    private SocketChannel socketChannel;
-
-    private long reconnectPause = 0;
+public class PublisherImpl extends NioSocketClient implements Publisher {
 
     private Gson gson = new Gson();
 
     private ExecutorService executorService;
 
     private AsyncPublisher asyncPublisher;
-
-    private AtomicBoolean reconnecting = new AtomicBoolean(false);
-
-    private ConcurrentLinkedQueue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
 
     public PublisherImpl(String host, int port) {
 
@@ -72,96 +51,42 @@ public class PublisherImpl implements Publisher {
 
     public PublisherImpl(List<ClusterServer> clusterServers) {
 
-        if (clusterServers == null || clusterServers.isEmpty()) {
-            throw new IllegalArgumentException("clusterServers cannot be null or empty");
-        }
+        super(clusterServers);
 
-        this.clusterServers = clusterServers;
         this.executorService = Executors.newSingleThreadExecutor(r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
-            thread.setName("Publisher Thread");
+            thread.setName("AsyncPublisher Thread");
 
             return thread;
         });
         this.asyncPublisher = new AsyncPublisherImpl(executorService, this);
-
-        // Get the first cluster server info
-        String firstHost = clusterServers.get(clusterServerIndex).host();
-        int firstPort = clusterServers.get(clusterServerIndex).port();
-
-        // Try to connect
-        connect(firstHost, firstPort);
     }
 
-    private boolean connect(String host, int port) {
+    @Override
+    public void clientConnected() {
 
-        try {
-            // Open a new socket channel and connect to the host and port
-            socketChannel = SocketChannel.open();
-            // Disable the Nagle algorithm
-            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            socketChannel.connect(new InetSocketAddress(host, port));
-
-            // We are connected successfully
-            connected = true;
-            reconnectPause = 0;
-
-            new Thread(new KeepAliveTask()).start();
-
-            return true;
-        } catch (IOException e) {
-            closeSocket();
-            reconnect();
-        }
-
-        return false;
+        // Not needed
     }
 
-    private void reconnect() {
+    @Override
+    public void clientReconnected() {
 
-        if (!reconnecting.get()) {
-            reconnecting.set(true);
-
-            new Thread(new ConnectTask()).start();
-        }
+        // Not needed
     }
 
-    private void closeSocket() {
+    @Override
+    public void received(JSONObject jsonObject) {
 
-        // If not null disconnect the socket channel
-        if (socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void addToQueue(String channel, JSONObject jsonObject) {
-
-        if (sendQueue.size() < 100) {
-            sendQueue.offer(jsonObject.put("ch", channel));
-        }
+        // Not needed
     }
 
     @Override
     public void disconnect(boolean force) {
 
-        if (connected) {
-            // We are not connected anymore
-            connected = false;
+        close(force);
 
-            // Close the socket channel
-            closeSocket();
-
-            if (!force) {
-                // Try to reconnect
-                reconnect();
-            } else {
-                // Shutdown our executor service
-                executorService.shutdown();
-            }
+        if (executorService != null) {
+            executorService.shutdown();
         }
     }
 
@@ -196,37 +121,15 @@ public class PublisherImpl implements Publisher {
             throw new IllegalArgumentException("jsonObject cannot be null or empty");
         }
 
-        if (socketChannel == null || !socketChannel.isConnected()) {
-            addToQueue(channel, jsonObject);
-            return;
-        }
-
         // Set the op code, channel
-        jsonObject.put("op", 2);
+        jsonObject.put("op", OpCode.OP_BROADCAST.getCode());
         jsonObject.put("ch", channel);
         // Set the subscriber name if it is not null
         if (subscriberName != null) {
             jsonObject.put("su", subscriberName);
         }
 
-        try {
-            // Send the json data and prepend the length
-            byte[] bytes = jsonObject.toString().getBytes("UTF-8");
-            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
-            byteBuffer.putInt(bytes.length);
-            byteBuffer.put(bytes);
-
-            // Prepare the buffer for writing
-            byteBuffer.flip();
-
-            socketChannel.write(byteBuffer);
-        } catch (IOException e) {
-            if (!channel.equals("keep-alive")) {
-                addToQueue(channel, jsonObject);
-            }
-
-            disconnect(false);
-        }
+        write(jsonObject);
     }
 
     @Override
@@ -294,7 +197,7 @@ public class PublisherImpl implements Publisher {
     @Override
     public boolean connected() {
 
-        return connected;
+        return super.isConnected();
     }
 
     @Override
@@ -303,70 +206,9 @@ public class PublisherImpl implements Publisher {
         return asyncPublisher;
     }
 
-    private class KeepAliveTask implements Runnable {
+    @Override
+    public List<ClusterServer> clusterServers() {
 
-        @Override
-        public void run() {
-
-            while (connected) {
-                // Try to send a keep alive to detect connection lost
-                publish("keep-alive", new JSONObject().put("time", System.currentTimeMillis()));
-
-                try {
-                    Thread.sleep(KEEP_ALIVE_TIME);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private class ConnectTask implements Runnable {
-
-        @Override
-        public void run() {
-
-            ClusterServer connectTo = clusterServers.get(clusterServerIndex);
-
-            while (!connect(connectTo.host(), connectTo.port())) {
-
-                if (reconnectPause > 0) {
-                    try {
-                        Thread.sleep(reconnectPause);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                clusterServerIndex++;
-                if (reconnectPause < 1000) {
-                    reconnectPause += 100;
-                }
-
-                if (clusterServers.size() == clusterServerIndex) {
-                    clusterServerIndex = 0;
-                }
-
-                // Assign the new cluster server
-                connectTo = clusterServers.get(clusterServerIndex);
-            }
-
-            // We are no longer reconnecting
-            reconnecting.set(false);
-
-            if (!sendQueue.isEmpty()) {
-
-                try {
-                    // Give the subscriber a chance to connect and register his channels first
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                for (JSONObject jsonObject : sendQueue) {
-                    publish(jsonObject.getString("ch"), jsonObject);
-                }
-            }
-        }
+        return Collections.unmodifiableList(super.clusterServers());
     }
 }

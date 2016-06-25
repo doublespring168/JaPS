@@ -17,24 +17,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.server.command.impl.sub;
+package de.jackwhite20.japs.server.command.impl;
 
-import de.jackwhite20.japs.client.sub.Subscriber;
-import de.jackwhite20.japs.client.sub.SubscriberFactory;
 import de.jackwhite20.japs.server.JaPS;
 import de.jackwhite20.japs.server.command.Command;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Created by JackWhite20 on 05.05.2016.
+ * Created by JackWhite20 on 22.06.2016.
  */
-public class SubCommand extends Command {
+public class GetCommand extends Command {
 
-    public static List<Subscriber> SUBSCRIBERS = new ArrayList<>();
-
-    public SubCommand(String name, String[] aliases, String description) {
+    public GetCommand(String name, String[] aliases, String description) {
 
         super(name, aliases, description);
     }
@@ -42,16 +35,14 @@ public class SubCommand extends Command {
     @Override
     public boolean execute(String[] args) {
 
-        if (args.length == 1) {
-            Subscriber subscriber = SubscriberFactory.create("localhost", JaPS.getConfig().port());
-            subscriber.subscribe(args[0], SubCommandChannelHandler.class);
-
-            SUBSCRIBERS.add(subscriber);
-
-            JaPS.getLogger().info("Subscribed channel " + args[0]);
-        } else {
-            JaPS.getLogger().info("Usage: sub <Channel>");
+        if (args.length != 1) {
+            JaPS.getLogger().info("Usage: get <Key>");
+            return false;
         }
+
+        String key = args[0];
+
+        System.out.println(key + "=" + JaPS.getServer().cache().get(key));
 
         return true;
     }

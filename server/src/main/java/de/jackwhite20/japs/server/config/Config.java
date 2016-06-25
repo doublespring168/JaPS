@@ -19,6 +19,8 @@
 
 package de.jackwhite20.japs.server.config;
 
+import de.jackwhite20.japs.shared.config.ClusterServer;
+
 import java.util.List;
 
 /**
@@ -38,7 +40,11 @@ public class Config {
 
     private List<ClusterServer> cluster;
 
-    public Config(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster) {
+    private int cleanupInterval = -1;
+
+    private int snapshotInterval = -1;
+
+    public Config(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval, int snapshotInterval) {
 
         this.host = host;
         this.port = port;
@@ -46,6 +52,8 @@ public class Config {
         this.debug = debug;
         this.workerThreads = workerThreads;
         this.cluster = cluster;
+        this.cleanupInterval = cleanupInterval;
+        this.snapshotInterval = snapshotInterval;
     }
 
     public String host() {
@@ -78,6 +86,16 @@ public class Config {
         return cluster;
     }
 
+    public int cleanupInterval() {
+
+        return cleanupInterval;
+    }
+
+    public int snapshotInterval() {
+
+        return snapshotInterval;
+    }
+
     @Override
     public String toString() {
 
@@ -88,38 +106,8 @@ public class Config {
                 ", debug=" + debug +
                 ", workerThreads=" + workerThreads +
                 ", cluster=" + cluster +
+                ", cleanupInterval=" + cleanupInterval +
+                ", snapshotInterval=" + snapshotInterval +
                 '}';
-    }
-
-    public static class ClusterServer {
-
-        private String host;
-
-        private int port;
-
-        public ClusterServer(String host, int port) {
-
-            this.host = host;
-            this.port = port;
-        }
-
-        public String host() {
-
-            return host;
-        }
-
-        public int port() {
-
-            return port;
-        }
-
-        @Override
-        public String toString() {
-
-            return "ClusterServer{" +
-                    "host='" + host + '\'' +
-                    ", port=" + port +
-                    '}';
-        }
     }
 }

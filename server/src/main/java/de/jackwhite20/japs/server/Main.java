@@ -21,6 +21,7 @@ package de.jackwhite20.japs.server;
 
 import com.google.gson.Gson;
 import de.jackwhite20.japs.server.config.Config;
+import de.jackwhite20.japs.shared.config.ClusterServer;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -51,25 +52,35 @@ public class Main {
             options.addOption("t", true, "Worker thread count");
             options.addOption("d", false, "If debug is enabled or not");
             options.addOption("c", true, "Add server as a cluster");
+            options.addOption("ci", true, "Sets the cache check interval");
+            options.addOption("si", true, "Sets the snapshot interval");
 
             CommandLineParser commandLineParser = new BasicParser();
             CommandLine commandLine = commandLineParser.parse(options, args);
 
             if (commandLine.hasOption("h") && commandLine.hasOption("p") && commandLine.hasOption("b") && commandLine.hasOption("t")) {
 
-                List<Config.ClusterServer> clusterServers = new ArrayList<>();
+                List<ClusterServer> clusterServers = new ArrayList<>();
 
                 if (commandLine.hasOption("c")) {
                     for (String c : commandLine.getOptionValues("c")) {
                         String[] splitted = c.split(":");
-                        clusterServers.add(new Config.ClusterServer(splitted[0], Integer.parseInt(splitted[1])));
+                        clusterServers.add(new ClusterServer(splitted[0], Integer.parseInt(splitted[1])));
                     }
                 }
 
-                config = new Config(commandLine.getOptionValue("h"), Integer.parseInt(commandLine.getOptionValue("p")), Integer.parseInt(commandLine.getOptionValue("b")), commandLine.hasOption("d"), Integer.parseInt(commandLine.getOptionValue("t")), clusterServers);
+                config = new Config(commandLine.getOptionValue("h"),
+                        Integer.parseInt(commandLine.getOptionValue("p")),
+                        Integer.parseInt(commandLine.getOptionValue("b")),
+                        commandLine.hasOption("d"),
+                        Integer.parseInt(commandLine.getOptionValue("t")),
+                        clusterServers,
+                        (commandLine.hasOption("ci")) ? Integer.parseInt(commandLine.getOptionValue("ci")) : 300,
+                        (commandLine.hasOption("si")) ? Integer.parseInt(commandLine.getOptionValue("si")) : -1);
             } else {
-                System.out.println("Usage: java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-d]");
+                System.out.println("Usage: java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-c IP:Port IP:Port] [-d]");
                 System.out.println("Example (with debugging enabled): java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d");
+                System.out.println("Example (with debugging enabled and cluster setup): java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d");
                 System.exit(-1);
             }
         } else {
