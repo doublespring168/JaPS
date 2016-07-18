@@ -257,9 +257,7 @@ public class JaPSServer implements Runnable {
     public void broadcast(Connection con, String channel, String data) {
 
         if (channelSessions.containsKey(channel)) {
-            for (Connection connection : channelSessions.get(channel)) {
-                connection.send(data);
-            }
+            channelSessions.get(channel).stream().filter(Connection::connected).forEach(connection -> connection.send(data));
         }
 
         // Broadcast it to the cluster if possible
