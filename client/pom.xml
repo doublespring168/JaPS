@@ -3,17 +3,18 @@
     <parent>
         <artifactId>japs</artifactId>
         <groupId>de.jackwhite20</groupId>
-        <version>2.2.0-SNAPSHOT</version>
+        <version>2.2.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>japs-client</artifactId>
 
     <dependencies>
+        <!-- JaPS Shared -->
         <dependency>
             <groupId>de.jackwhite20</groupId>
             <artifactId>japs-shared</artifactId>
-            <version>2.2.0-SNAPSHOT</version>
+            <version>2.2.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
