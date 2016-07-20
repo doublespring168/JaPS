@@ -86,6 +86,8 @@ java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d 
 
 # API examples
 
+If you want to use the javadoc you can browse it [here](https://jackwhite20.github.io/JaPS/doc/).
+
 _Cache:_
 ```java
 PubSubCache cache = PubSubCacheFactory.create("localhost", 1337);
@@ -130,8 +132,6 @@ cache.remove("json");
 // Disconnects the cache client
 cache.disconnect();
 ```
-
-If you want to use the javadoc you can browse it [here](https://jackwhite20.github.io/JaPS/doc/).
 
 _Publisher:_
 ```java
