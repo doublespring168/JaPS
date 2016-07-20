@@ -83,7 +83,8 @@ public class Connection {
 
             socketChannel.write(byteBuffer);
         } catch (IOException e) {
-            e.printStackTrace();
+            // Close the connection due to broken pipe
+            close();
         }
     }
 
@@ -95,6 +96,8 @@ public class Connection {
 
         connected = false;
 
+        server.removeClient(this);
+
         if (socketChannel != null) {
             try {
                 socketChannel.close();
@@ -102,8 +105,6 @@ public class Connection {
                 e.printStackTrace();
             }
         }
-
-        server.removeClient(this);
 
         LOGGER.log(Level.FINE, "[{0}] Connection closed", remoteAddress.toString());
     }
@@ -299,5 +300,10 @@ public class Connection {
     public String name() {
 
         return name;
+    }
+
+    public boolean connected() {
+
+        return socketChannel.isConnected() && connected;
     }
 }
