@@ -42,6 +42,8 @@ public abstract class NioSocketClient implements Runnable {
 
     private static final long KEEP_ALIVE_TIME = 1000;
 
+    private static final int CONNECT_TIMEOUT = 2000;
+
     private static final int BUFFER_SIZE = 4096;
 
     private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
@@ -101,8 +103,8 @@ public abstract class NioSocketClient implements Runnable {
 
             // Disable the Nagle algorithm
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            // Try to connect to the host and port in blocking mode
-            socketChannel.connect(new InetSocketAddress(host, port));
+            // Try to connect to the host and port in blocking mode with explicit connect timeout
+            socketChannel.socket().connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT);
             socketChannel.finishConnect();
 
             // Set non blocking and register the read event
