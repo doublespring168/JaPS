@@ -213,6 +213,16 @@ public class Connection {
 
                         LOGGER.log(Level.FINE, "[{0}] Removed cache entry with key {1}", new Object[] {remoteAddress.toString(), removeKey});
                         break;
+                    case OP_CACHE_HAS:
+                        boolean has = server.cache().has(jsonObject.getString("key"));
+
+                        JSONObject hasResponse = new JSONObject()
+                                .put("op", OpCode.OP_CACHE_HAS.getCode())
+                                .put("id", jsonObject.getInt("id"))
+                                .put("has", has);
+
+                        send(hasResponse.toString());
+                        break;
                     case OP_CACHE_SET_EXPIRE:
                         String expireKey = jsonObject.getString("key");
                         int expireSeconds = jsonObject.getInt("expire");

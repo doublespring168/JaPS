@@ -35,7 +35,8 @@ public enum OpCode {
     OP_CACHE_SET_EXPIRE(7),
     OP_CACHE_GET_EXPIRE(8),
     OP_CLUSTER_INFO_SET(9),
-    OP_KEEP_ALIVE(10);
+    OP_KEEP_ALIVE(10),
+    OP_CACHE_HAS(11);
 
     private int code;
 

@@ -23,6 +23,7 @@ import de.jackwhite20.japs.shared.config.ClusterServer;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 /**
@@ -105,6 +106,13 @@ public interface PubSubCache {
      * @param consumer The consumer.
      */
     void get(String key, Consumer<JSONObject> consumer);
+
+    /**
+     * Returns if the given key is in the cache.
+     *
+     * @param key The key.
+     */
+    Future<Boolean> has(String key);
 
     /**
      * Gets the value as a class object and calls the consumer with this class.

@@ -26,6 +26,7 @@ import org.json.JSONObject;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 /**
@@ -101,6 +102,12 @@ public class AsyncPubSubCacheImpl implements AsyncPubSubCache {
     public void get(String key, Consumer<JSONObject> consumer) {
 
         executorService.execute(() -> pubSubCache.get(key, consumer));
+    }
+
+    @Override
+    public Future<Boolean> has(String key) {
+
+        return pubSubCache.has(key);
     }
 
     @Override
