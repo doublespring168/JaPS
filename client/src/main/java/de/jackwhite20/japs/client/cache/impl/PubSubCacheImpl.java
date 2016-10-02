@@ -31,9 +31,7 @@ import org.json.JSONObject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -98,6 +96,19 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
                     try {
                         // Remove the consumer and accept it
                         callbacks.remove(id).accept(value);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                break;
+            case 11:
+                int hasId = jsonObject.getInt("id");
+
+                if (callbacks.containsKey(hasId)) {
+                    // Catch user related exceptions extra
+                    try {
+                        // Remove the consumer and accept it
+                        callbacks.remove(hasId).accept(new JSONObject().put("has", jsonObject.getBoolean("has")));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -251,6 +262,45 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
                 .put("id", id);
 
         write(jsonObject);
+    }
+
+    @Override
+    public Future<Boolean> has(String key) {
+
+        if (key == null || key.isEmpty()) {
+            throw new IllegalArgumentException("key cannot be null or empty");
+        }
+
+        return executorService.submit(() -> {
+
+            int id = CALLBACK_COUNTER.getAndIncrement();
+
+            final boolean[] has = {false};
+
+            CountDownLatch countDownLatch = new CountDownLatch(1);
+
+            callbacks.put(id, new Consumer<JSONObject>() {
+
+                @Override
+                public void accept(JSONObject jsonObject) {
+
+                    has[0] = jsonObject.getBoolean("has");
+
+                    countDownLatch.countDown();
+                }
+            });
+
+            JSONObject jsonObject = new JSONObject()
+                    .put("op", OpCode.OP_CACHE_HAS.getCode())
+                    .put("key", key)
+                    .put("id", id);
+
+            write(jsonObject);
+
+            countDownLatch.await();
+
+            return has[0];
+        });
     }
 
     @Override

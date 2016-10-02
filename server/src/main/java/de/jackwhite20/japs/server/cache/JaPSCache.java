@@ -222,6 +222,11 @@ public class JaPSCache {
         return getAndRemove(key) != null;
     }
 
+    public boolean has(String key) {
+
+        return cache.containsKey(key);
+    }
+
     public void expire(String key, int secondsToLive) {
 
         if (key == null) {
