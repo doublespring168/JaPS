@@ -46,24 +46,6 @@ public interface PubSubCache {
     void disconnect();
 
     /**
-     * Puts a key with its string value and the expire.
-     *
-     * @param key The key.
-     * @param value The value.
-     * @param expire The expire in seconds.
-     */
-    void put(String key, String value, int expire);
-
-    /**
-     * Puts a key with its string value.
-     * This key will not expire!
-     *
-     * @param key The key.
-     * @param value The value.
-     */
-    void put(String key, String value);
-
-    /**
      * Puts a key with its json object and the expire.
      *
      * @param key The key.
@@ -88,7 +70,7 @@ public interface PubSubCache {
      * @param value The value.
      * @param expire The expire in seconds.
      */
-    void put(String key, Object value, int expire);
+    void putObject(String key, Object value, int expire);
 
     /**
      * Puts a key with its object value.
@@ -97,7 +79,7 @@ public interface PubSubCache {
      * @param key The key.
      * @param value The value.
      */
-    void put(String key, Object value);
+    void putObject(String key, Object value);
 
     /**
      * Gets the value associated with that key and calls the consumer with the value.
