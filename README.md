@@ -45,7 +45,7 @@ _Client:_
 <dependency>
     <groupId>de.jackwhite20</groupId>
     <artifactId>japs-client</artifactId>
-    <version>2.2.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
