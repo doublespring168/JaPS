@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class SubscriberImpl extends NioSocketClient implements Subscriber, Runnable {
+public class SubscriberImpl extends NioSocketClient implements Subscriber {
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
 

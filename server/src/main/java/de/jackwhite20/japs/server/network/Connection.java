@@ -22,12 +22,14 @@ package de.jackwhite20.japs.server.network;
 import de.jackwhite20.japs.server.JaPS;
 import de.jackwhite20.japs.server.JaPSServer;
 import de.jackwhite20.japs.shared.net.OpCode;
+import de.jackwhite20.japs.shared.pipeline.ChannelUtil;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -36,23 +38,17 @@ import java.util.logging.Logger;
 /**
  * Created by JackWhite20 on 25.03.2016.
  */
-public class Connection {
+public class Connection extends SimpleChannelInboundHandler<JSONObject> {
 
     private static final Logger LOGGER = JaPS.getLogger();
 
-    private static final int BUFFER_GROW_FACTOR = 2;
-
-    private boolean connected = true;
-
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
-
     private JaPSServer server;
-
-    private SocketChannel socketChannel;
 
     private List<String> channels = new ArrayList<>();
 
     private SocketAddress remoteAddress;
+
+    private Channel channel;
 
     private String host;
 
@@ -60,230 +56,165 @@ public class Connection {
 
     private String name;
 
-    public Connection(JaPSServer server, SocketChannel socketChannel) {
+    public Connection(JaPSServer server, Channel channel) {
 
         this.server = server;
-        this.socketChannel = socketChannel;
-        try {
-            this.remoteAddress = socketChannel.getRemoteAddress();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.channel = channel;
+        this.remoteAddress = channel.remoteAddress();
     }
 
-    public void send(String data) {
+    public void send(JSONObject jsonObject) {
 
-        try {
-            byte[] bytes = data.getBytes("UTF-8");
-            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
-            byteBuffer.putInt(bytes.length);
-            byteBuffer.put(bytes);
-
-            byteBuffer.flip();
-
-            socketChannel.write(byteBuffer);
-        } catch (IOException e) {
-            // Close the connection due to broken pipe
-            close();
-        }
+        channel.writeAndFlush(jsonObject);
     }
 
-    private void close() {
-
-        if (!connected) {
-            return;
-        }
-
-        connected = false;
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 
         server.removeClient(this);
-
-        if (socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
 
         LOGGER.log(Level.FINE, "[{0}] Connection closed", remoteAddress.toString());
     }
 
-    public void read() {
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
 
-        byteBuffer.limit(byteBuffer.capacity());
+        LOGGER.log(Level.FINE, "[{0}] New connection", remoteAddress.toString());
+    }
 
-        try {
-            int read = socketChannel.read(byteBuffer);
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, JSONObject jsonObject) throws Exception {
 
-            // Read is -1 if connection is closed
-            if (read == -1) {
-                close();
-                return;
-            }
+        if (jsonObject.isNull("op")) {
+            return;
+        }
 
-            // Resize buffer and read the rest if the buffer was too small
-            if (byteBuffer.remaining() == 0) {
-                ByteBuffer temp = ByteBuffer.allocate(byteBuffer.capacity() * BUFFER_GROW_FACTOR);
-                byteBuffer.flip();
-                temp.put(byteBuffer);
-                byteBuffer = temp;
+        int op = ((Integer) jsonObject.remove("op"));
 
-                int position = byteBuffer.position();
-                byteBuffer.flip();
-                // Reset to last position (the position from the half read packet) after flip
-                byteBuffer.position(position);
+        OpCode opCode = OpCode.of(op);
 
-                // Read again to read the left packet
-                read();
-            }
-
-            byteBuffer.flip();
-
-            while (byteBuffer.remaining() > 0) {
-                byteBuffer.mark();
-
-                if (byteBuffer.remaining() < 4) {
-                    break;
+        switch (opCode) {
+            case OP_BROADCAST:
+                if (!jsonObject.has("su")) {
+                    // Broadcast it to all subscriber
+                    server.broadcast(this, jsonObject.getString("ch"), jsonObject);
+                } else {
+                    // Broadcast to specific subscriber
+                    server.broadcastTo(this, jsonObject.getString("ch"), jsonObject, jsonObject.getString("su"));
                 }
+                break;
+            case OP_CACHE_GET:
+                String getKey = jsonObject.getString("key");
+                int getCallbackId = jsonObject.getInt("id");
 
-                int readable = byteBuffer.getInt();
-                if (byteBuffer.remaining() < readable) {
-                    byteBuffer.reset();
-                    break;
-                }
+                Object getValue = server.cache().get(getKey);
 
-                byte[] bytes = new byte[readable];
-                byteBuffer.get(bytes);
+                JSONObject getResponse = new JSONObject()
+                        .put("op", 5)
+                        .put("id", getCallbackId)
+                        .put("value", getValue);
 
-                String json = new String(bytes, "UTF-8");
+                send(getResponse);
 
-                JSONObject jsonObject = new JSONObject(json);
+                LOGGER.log(Level.FINE, "[{0}] Got cache entry {1}={2} and a callback id of {3}", new Object[] {remoteAddress.toString(), getKey, getValue, getCallbackId});
+                break;
+            case OP_CACHE_ADD:
+                String key = jsonObject.getString("key");
+                Object value = jsonObject.get("value");
+                int expire = jsonObject.getInt("expire");
 
-                if (jsonObject.isNull("op")) {
-                    break;
-                }
+                server.cache().put(key, value, expire);
 
-                int op = ((Integer) jsonObject.remove("op"));
+                server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_ADD.getCode()));
 
-                OpCode opCode = OpCode.of(op);
+                LOGGER.log(Level.FINE, "[{0}] Added cache entry {1}={2} with an expire of {3}", new Object[] {remoteAddress.toString(), key, value, expire});
+                break;
+            case OP_CACHE_REMOVE:
+                String removeKey = jsonObject.getString("key");
 
-                switch (opCode) {
-                    case OP_BROADCAST:
-                        if (!jsonObject.has("su")) {
-                            // Broadcast it to all subscriber
-                            server.broadcast(this, jsonObject.getString("ch"), jsonObject.toString());
-                        } else {
-                            // Broadcast to specific subscriber
-                            server.broadcastTo(this, jsonObject.getString("ch"), jsonObject, jsonObject.getString("su"));
-                        }
-                        break;
-                    case OP_CACHE_GET:
-                        String getKey = jsonObject.getString("key");
-                        int getCallbackId = jsonObject.getInt("id");
+                server.cache().remove(removeKey);
 
-                        Object getValue = server.cache().get(getKey);
+                server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_REMOVE.getCode()));
 
-                        JSONObject getResponse = new JSONObject()
-                                .put("op", 5)
-                                .put("id", getCallbackId)
-                                .put("value", getValue);
+                LOGGER.log(Level.FINE, "[{0}] Removed cache entry with key {1}", new Object[] {remoteAddress.toString(), removeKey});
+                break;
+            case OP_CACHE_HAS:
+                boolean has = server.cache().has(jsonObject.getString("key"));
 
-                        send(getResponse.toString());
+                JSONObject hasResponse = new JSONObject()
+                        .put("op", OpCode.OP_CACHE_HAS.getCode())
+                        .put("id", jsonObject.getInt("id"))
+                        .put("has", has);
 
-                        LOGGER.log(Level.FINE, "[{0}] Got cache entry {1}={2} and a callback id of {3}", new Object[] {remoteAddress.toString(), getKey, getValue, getCallbackId});
-                        break;
-                    case OP_CACHE_ADD:
-                        String key = jsonObject.getString("key");
-                        Object value = jsonObject.get("value");
-                        int expire = jsonObject.getInt("expire");
+                send(hasResponse);
+                break;
+            case OP_CACHE_SET_EXPIRE:
+                String expireKey = jsonObject.getString("key");
+                int expireSeconds = jsonObject.getInt("expire");
 
-                        server.cache().put(key, value, expire);
+                server.cache().expire(expireKey, expireSeconds);
 
-                        server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_ADD.getCode()));
+                server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_SET_EXPIRE.getCode()));
 
-                        LOGGER.log(Level.FINE, "[{0}] Added cache entry {1}={2} with an expire of {3}", new Object[] {remoteAddress.toString(), key, value, expire});
-                        break;
-                    case OP_CACHE_REMOVE:
-                        String removeKey = jsonObject.getString("key");
+                LOGGER.log(Level.FINE, "[{0}] Set expire seconds for key {1} to {2} seconds", new Object[] {remoteAddress.toString(), expireKey, expireSeconds});
+                break;
+            case OP_CACHE_GET_EXPIRE:
+                String expireGetKey = jsonObject.getString("key");
+                int expireGetCallbackId = jsonObject.getInt("id");
 
-                        server.cache().remove(removeKey);
+                int expireGetValue = ((int) server.cache().expire(expireGetKey));
 
-                        server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_REMOVE.getCode()));
+                JSONObject expireGetResponse = new JSONObject()
+                        .put("op", 5)
+                        .put("id", expireGetCallbackId)
+                        .put("value", expireGetValue);
 
-                        LOGGER.log(Level.FINE, "[{0}] Removed cache entry with key {1}", new Object[] {remoteAddress.toString(), removeKey});
-                        break;
-                    case OP_CACHE_HAS:
-                        boolean has = server.cache().has(jsonObject.getString("key"));
+                send(expireGetResponse);
 
-                        JSONObject hasResponse = new JSONObject()
-                                .put("op", OpCode.OP_CACHE_HAS.getCode())
-                                .put("id", jsonObject.getInt("id"))
-                                .put("has", has);
+                LOGGER.log(Level.FINE, "[{0}] Got expire in time for key {1} which will expire in {2} seconds", new Object[] {remoteAddress.toString(), expireGetKey, expireGetValue});
+                break;
+            case OP_REGISTER_CHANNEL:
+                String channelToRegister = jsonObject.getString("ch");
 
-                        send(hasResponse.toString());
-                        break;
-                    case OP_CACHE_SET_EXPIRE:
-                        String expireKey = jsonObject.getString("key");
-                        int expireSeconds = jsonObject.getInt("expire");
+                server.subscribeChannel(channelToRegister, this);
+                channels.add(channelToRegister);
+                break;
+            case OP_UNREGISTER_CHANNEL:
+                String channelToRemove = jsonObject.getString("ch");
 
-                        server.cache().expire(expireKey, expireSeconds);
+                server.unsubscribeChannel(channelToRemove, this);
+                channels.remove(channelToRemove);
+                break;
+            case OP_SUBSCRIBER_SET_NAME:
+                name = jsonObject.getString("su");
 
-                        server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_SET_EXPIRE.getCode()));
+                LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[]{remoteAddress.toString(), name});
+                break;
+            case OP_CLUSTER_INFO_SET:
+                host = jsonObject.getString("host");
+                port = jsonObject.getInt("port");
 
-                        LOGGER.log(Level.FINE, "[{0}] Set expire seconds for key {1} to {2} seconds", new Object[] {remoteAddress.toString(), expireKey, expireSeconds});
-                        break;
-                    case OP_CACHE_GET_EXPIRE:
-                        String expireGetKey = jsonObject.getString("key");
-                        int expireGetCallbackId = jsonObject.getInt("id");
+                LOGGER.log(Level.FINE, "[{0}] Cluster info set to: {1}:{2}", new Object[]{remoteAddress.toString(), host, String.valueOf(port)});
+                break;
+            case OP_KEEP_ALIVE:
+                // Ignore for now
+                //LOGGER.log(Level.FINE, "[{0}] Keep alive time: {1}", new Object[]{remoteAddress.toString(), System.currentTimeMillis()});
+                break;
+            case OP_UNKNOWN:
+                LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[]{remoteAddress.toString(), op});
+                break;
+        }
+    }
 
-                        int expireGetValue = ((int) server.cache().expire(expireGetKey));
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 
-                        JSONObject expireGetResponse = new JSONObject()
-                                .put("op", 5)
-                                .put("id", expireGetCallbackId)
-                                .put("value", expireGetValue);
+        ChannelUtil.closeOnFlush(channel);
 
-                        send(expireGetResponse.toString());
+        if (!(cause instanceof IOException)) {
+            cause.printStackTrace();
 
-                        LOGGER.log(Level.FINE, "[{0}] Got expire in time for key {1} which will expire in {2} seconds", new Object[] {remoteAddress.toString(), expireGetKey, expireGetValue});
-                        break;
-                    case OP_REGISTER_CHANNEL:
-                        String channelToRegister = jsonObject.getString("ch");
-
-                        server.subscribeChannel(channelToRegister, this);
-                        channels.add(channelToRegister);
-                        break;
-                    case OP_UNREGISTER_CHANNEL:
-                        String channelToRemove = jsonObject.getString("ch");
-
-                        server.unsubscribeChannel(channelToRemove, this);
-                        channels.remove(channelToRemove);
-                        break;
-                    case OP_SUBSCRIBER_SET_NAME:
-                        name = jsonObject.getString("su");
-
-                        LOGGER.log(Level.FINE, "[{0}] Subscriber name set to: {1}", new Object[]{remoteAddress.toString(), name});
-                        break;
-                    case OP_CLUSTER_INFO_SET:
-                        host = jsonObject.getString("host");
-                        port = jsonObject.getInt("port");
-
-                        LOGGER.log(Level.FINE, "[{0}] Cluster info set to: {1}:{2}", new Object[]{remoteAddress.toString(), host, String.valueOf(port)});
-                        break;
-                    case OP_KEEP_ALIVE:
-                        // Ignore for now
-                        //LOGGER.log(Level.FINE, "[{0}] Keep alive time: {1}", new Object[]{remoteAddress.toString(), System.currentTimeMillis()});
-                        break;
-                    case OP_UNKNOWN:
-                        LOGGER.log(Level.WARNING, "[{0}] Unknown OP code received: {0}", new Object[]{remoteAddress.toString(), op});
-                        break;
-                }
-            }
-
-            byteBuffer.compact();
-        } catch (IOException e) {
-            close();
+            LOGGER.log(Level.SEVERE, "Error: " + cause.toString());
         }
     }
 
@@ -314,6 +245,6 @@ public class Connection {
 
     public boolean connected() {
 
-        return socketChannel.isConnected() && connected;
+        return channel.isActive();
     }
 }

@@ -63,18 +63,6 @@ public class AsyncPubSubCacheImpl implements AsyncPubSubCache {
     }
 
     @Override
-    public void put(String key, String value, int expire) {
-
-        executorService.execute(() -> pubSubCache.put(key, value, expire));
-    }
-
-    @Override
-    public void put(String key, String value) {
-
-        executorService.execute(() -> pubSubCache.put(key, value));
-    }
-
-    @Override
     public void put(String key, JSONObject value, int expire) {
 
         executorService.execute(() -> pubSubCache.put(key, value, expire));
@@ -87,15 +75,15 @@ public class AsyncPubSubCacheImpl implements AsyncPubSubCache {
     }
 
     @Override
-    public void put(String key, Object value, int expire) {
+    public void putObject(String key, Object value, int expire) {
 
-        executorService.execute(() -> pubSubCache.put(key, value, expire));
+        executorService.execute(() -> pubSubCache.putObject(key, value, expire));
     }
 
     @Override
-    public void put(String key, Object value) {
+    public void putObject(String key, Object value) {
 
-        executorService.execute(() -> pubSubCache.put(key, value));
+        executorService.execute(() -> pubSubCache.putObject(key, value));
     }
 
     @Override

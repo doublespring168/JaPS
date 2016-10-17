@@ -17,32 +17,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.jackwhite20.japs.server.util;
+package de.jackwhite20.japs.shared.pipeline;
 
-import java.util.Iterator;
-import java.util.List;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 
 /**
- * Created by JackWhite20 on 06.04.2016.
+ * Created by JackWhite20 on 07.10.2016.
  */
-public class RoundRobinList<T> {
+public final class ChannelUtil {
 
-    private Iterator<T> iterator;
-
-    private List<T> list;
-
-    public RoundRobinList(List<T> list) {
-
-        this.list = list;
-        this.iterator = list.iterator();
+    private ChannelUtil() {
+        // no instance
     }
 
-    public T next() {
+    public static void closeOnFlush(Channel ch) {
 
-        if (!iterator.hasNext()) {
-            iterator = list.iterator();
+        if (ch != null && ch.isActive()) {
+            ch.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }
-
-        return iterator.next();
     }
 }

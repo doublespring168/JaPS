@@ -21,50 +21,46 @@ package de.jackwhite20.japs.shared.nio;
 
 import de.jackwhite20.japs.shared.config.ClusterServer;
 import de.jackwhite20.japs.shared.net.ConnectException;
-import de.jackwhite20.japs.shared.net.OpCode;
+import de.jackwhite20.japs.shared.pipeline.ChannelUtil;
+import de.jackwhite20.japs.shared.pipeline.PipelineUtils;
+import de.jackwhite20.japs.shared.pipeline.initialize.ClientChannelInitializer;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by JackWhite20 on 16.06.2016.
  */
-public abstract class NioSocketClient implements Runnable {
-
-    private static final long KEEP_ALIVE_TIME = 1000;
+@ChannelHandler.Sharable
+public abstract class NioSocketClient extends SimpleChannelInboundHandler<JSONObject> {
 
     private static final int CONNECT_TIMEOUT = 2000;
 
-    private static final int BUFFER_SIZE = 4096;
-
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-
     private List<ClusterServer> clusterServers = new ArrayList<>();
 
-    private SocketChannel socketChannel;
-
-    private Selector selector;
-
-    private int clusterServerIndex = 0;
-
-    private long reconnectPause = 0;
+    private Channel channel;
 
     private boolean connected;
 
     private AtomicBoolean reconnecting = new AtomicBoolean(false);
 
-    private Queue<String> sendQueue = new ConcurrentLinkedQueue<>();
+    private Queue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
 
     protected String name;
+
+    private String host;
+
+    private int port;
 
     public NioSocketClient(List<ClusterServer> clusterServers, String name) {
 
@@ -79,7 +75,11 @@ public abstract class NioSocketClient implements Runnable {
         this.name = name;
 
         ClusterServer first = clusterServers.get(0);
-        if (!connect(first.host(), first.port())) {
+
+        this.host = first.host();
+        this.port = first.port();
+
+        if (!connect(host, port)) {
             throw new ConnectException("cannot initially connect to " + first.host() + ":" + first.port());
         }
     }
@@ -97,67 +97,72 @@ public abstract class NioSocketClient implements Runnable {
 
     public boolean connect(String host, int port) {
 
+        ChannelFuture channelFuture = new Bootstrap()
+                .group(PipelineUtils.newEventLoopGroup(1))
+                .channel(PipelineUtils.getChannel())
+                .handler(new ClientChannelInitializer(this))
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT)
+                .connect(host, port);
+
+        channelFuture.awaitUninterruptibly();
+
+        channel = channelFuture.channel();
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+
+        channelFuture.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+
+                connected = channelFuture.isSuccess();
+
+                countDownLatch.countDown();
+            }
+        });
+
         try {
-            selector = Selector.open();
-            socketChannel = SocketChannel.open();
-
-            // Disable the Nagle algorithm
-            socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true);
-            // Try to connect to the host and port in blocking mode with explicit connect timeout
-            socketChannel.socket().connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT);
-            socketChannel.finishConnect();
-
-            // Set non blocking and register the read event
-            socketChannel.configureBlocking(false);
-            socketChannel.register(selector, SelectionKey.OP_READ);
-
-            connected = true;
-
-            Thread subThread = new Thread(this);
-            subThread.setName("Receive Thread");
-            subThread.start();
-
-            Thread keepThread = new Thread(new KeepAliveTask());
-            keepThread.setName("Heartbeat Thread");
-            keepThread.start();
-
-            clientConnected();
-
-            return true;
-        } catch (Exception ignore) {
-            connected = false;
-
-            closeSocket();
-            reconnect();
+            countDownLatch.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
-        return false;
+        return connected;
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+        clientConnected();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+
+        reconnect();
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+
+        ChannelUtil.closeOnFlush(channel);
+
+        if (!(cause instanceof IOException)) {
+            cause.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, JSONObject jsonObject) throws Exception {
+
+        received(jsonObject);
     }
 
     private void addToQueue(JSONObject jsonObject) {
 
         // Only queue up to 100 messages
         if (sendQueue.size() < 100) {
-            sendQueue.offer(jsonObject.toString());
-        }
-    }
-
-    private void closeSocket() {
-
-        if (selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (socketChannel != null) {
-            try {
-                socketChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            sendQueue.offer(jsonObject);
         }
     }
 
@@ -166,7 +171,35 @@ public abstract class NioSocketClient implements Runnable {
         if (!reconnecting.get()) {
             reconnecting.set(true);
 
-            new Thread(new ReconnectTask()).start();
+            connected = false;
+
+            channel.eventLoop().schedule(() -> {
+
+                if (!connect(host, port)) {
+                    reconnecting.set(false);
+
+                    reconnect();
+                } else {
+                    reconnecting.set(false);
+
+                    clientReconnected();
+
+                    try {
+                        // Give the subscriber a chance to connect first
+                        Thread.sleep(1200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    //Resend the queued messages if available
+                    while (sendQueue.size() > 0) {
+                        JSONObject jsonObject = sendQueue.poll();
+                        if (jsonObject != null) {
+                            write(jsonObject);
+                        }
+                    }
+                }
+            }, 1, TimeUnit.SECONDS);
         }
     }
 
@@ -175,8 +208,7 @@ public abstract class NioSocketClient implements Runnable {
         if (connected) {
             connected = false;
 
-            // Close selector and the socket channel
-            closeSocket();
+            channel.close();
 
             if (!force) {
                 reconnect();
@@ -186,97 +218,17 @@ public abstract class NioSocketClient implements Runnable {
 
     public void write(JSONObject jsonObject, boolean queueEnabled) {
 
-        if (socketChannel == null || !socketChannel.isConnected()) {
-            if (queueEnabled) {
-                addToQueue(jsonObject);
-            }
+        if (!channel.isActive() && queueEnabled) {
+            addToQueue(jsonObject);
             return;
         }
 
-        try {
-            // Send the json data and prepend the length
-            byte[] bytes = jsonObject.toString().getBytes("UTF-8");
-            ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length + 4);
-            byteBuffer.putInt(bytes.length);
-            byteBuffer.put(bytes);
-
-            // Prepare the buffer for writing
-            byteBuffer.flip();
-
-            socketChannel.write(byteBuffer);
-        } catch (IOException e) {
-            if (queueEnabled) {
-                addToQueue(jsonObject);
-            }
-
-            close(false);
-        }
+        channel.writeAndFlush(jsonObject);
     }
 
     public void write(JSONObject jsonObject) {
 
         write(jsonObject, true);
-    }
-
-    @Override
-    public void run() {
-
-        while (connected) {
-            try {
-                if (selector.select() == 0) {
-                    continue;
-                }
-
-                Set<SelectionKey> keys = selector.selectedKeys();
-                Iterator<SelectionKey> keyIterator = keys.iterator();
-
-                while (keyIterator.hasNext()) {
-                    SelectionKey key = keyIterator.next();
-
-                    keyIterator.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    if (key.isReadable()) {
-                        int read = socketChannel.read(byteBuffer);
-
-                        if (read == -1) {
-                            close(false);
-                            return;
-                        }
-
-                        byteBuffer.flip();
-
-                        while (byteBuffer.remaining() > 0) {
-                            byteBuffer.mark();
-
-                            if (byteBuffer.remaining() < 4) {
-                                break;
-                            }
-
-                            int readable = byteBuffer.getInt();
-                            if (byteBuffer.remaining() < readable) {
-                                byteBuffer.reset();
-                                break;
-                            }
-
-                            byte[] bytes = new byte[readable];
-                            byteBuffer.get(bytes);
-
-                            received(new JSONObject(new String(bytes, "UTF-8")));
-                        }
-
-                        byteBuffer.compact();
-                    }
-                }
-            } catch (Exception ignore) {
-                close(false);
-            }
-        }
-
-        close(true);
     }
 
     public List<ClusterServer> clusterServers() {
@@ -287,79 +239,5 @@ public abstract class NioSocketClient implements Runnable {
     public boolean isConnected() {
 
         return connected;
-    }
-
-    private class KeepAliveTask implements Runnable {
-
-        @Override
-        public void run() {
-
-            // Construct the keep alive message
-            JSONObject jsonObject = new JSONObject()
-                    .put("op", OpCode.OP_KEEP_ALIVE.getCode())
-                    .put("ch", "keep-alive");
-
-            while (connected) {
-                // Try to send a keep alive to detect connection lost
-                write(jsonObject);
-
-                try {
-                    Thread.sleep(KEEP_ALIVE_TIME);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private class ReconnectTask implements Runnable {
-
-        @Override
-        public void run() {
-
-            ClusterServer connectTo = clusterServers.get(clusterServerIndex);
-
-            while (!connect(connectTo.host(), connectTo.port())) {
-
-                if (reconnectPause > 0) {
-                    try {
-                        Thread.sleep(reconnectPause);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                clusterServerIndex++;
-                if (reconnectPause < 1000) {
-                    reconnectPause += 50;
-                }
-
-                if (clusterServers.size() == clusterServerIndex) {
-                    clusterServerIndex = 0;
-                }
-
-                // Assign the new cluster server
-                connectTo = clusterServers.get(clusterServerIndex);
-            }
-
-            reconnecting.set(false);
-
-            if (!sendQueue.isEmpty()) {
-
-                try {
-                    // Give the subscribers a chance to connect and register their channels first
-                    Thread.sleep(800);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                sendQueue.forEach(s -> write(new JSONObject(s), false));
-
-                // Clear the queue to avoid duplicated messages
-                sendQueue.clear();
-            }
-
-            clientReconnected();
-        }
     }
 }

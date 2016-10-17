@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 /**
  * Created by JackWhite20 on 13.06.2016.
  */
-public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Runnable {
+public class PubSubCacheImpl extends NioSocketClient implements PubSubCache {
 
     private static final AtomicInteger CALLBACK_COUNTER = new AtomicInteger(0);
 
@@ -134,7 +134,7 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
     }
 
     @Override
-    public void put(String key, String value, int expire) {
+    public void put(String key, JSONObject value, int expire) {
 
         if (key == null || key.isEmpty()) {
             throw new IllegalArgumentException("key cannot be null or empty");
@@ -154,29 +154,13 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
     }
 
     @Override
-    public void put(String key, String value) {
-
-        put(key, value, -1);
-    }
-
-    @Override
-    public void put(String key, JSONObject value, int expire) {
-
-        if (value == null) {
-            throw new IllegalArgumentException("value cannot be null or empty");
-        }
-
-        put(key, value.toString(), expire);
-    }
-
-    @Override
     public void put(String key, JSONObject value) {
 
         put(key, value, -1);
     }
 
     @Override
-    public void put(String key, Object value, int expire) {
+    public void putObject(String key, Object value, int expire) {
 
         if (value == null) {
             throw new IllegalArgumentException("value cannot be null or empty");
@@ -186,13 +170,13 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
             throw new IllegalArgumentException("value must implement the 'Cacheable' class");
         }
 
-        put(key, gson.toJson(value), expire);
+        put(key, new JSONObject(gson.toJson(value)), expire);
     }
 
     @Override
-    public void put(String key, Object value) {
+    public void putObject(String key, Object value) {
 
-        put(key, value, -1);
+        putObject(key, value, -1);
     }
 
     @Override
@@ -247,14 +231,7 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache, Run
         int id = CALLBACK_COUNTER.getAndIncrement();
 
         // TODO: 14.06.2016 Maybe improve
-        callbacks.put(id, new Consumer<String>() {
-
-            @Override
-            public void accept(String o) {
-
-                consumer.accept(new JSONObject(o));
-            }
-        });
+        callbacks.put(id, consumer);
 
         JSONObject jsonObject = new JSONObject()
                 .put("op", OpCode.OP_CACHE_GET.getCode())
