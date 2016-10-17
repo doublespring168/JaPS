@@ -3,7 +3,7 @@
     <parent>
         <artifactId>japs</artifactId>
         <groupId>de.jackwhite20</groupId>
-        <version>2.2.2-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -14,7 +14,7 @@
         <dependency>
             <groupId>de.jackwhite20</groupId>
             <artifactId>japs-shared</artifactId>
-            <version>2.2.2-SNAPSHOT</version>
+            <version>3.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
