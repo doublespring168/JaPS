@@ -22,8 +22,8 @@ package de.jackwhite20.japs.server;
 import de.jackwhite20.japs.server.cache.JaPSCache;
 import de.jackwhite20.japs.server.config.Config;
 import de.jackwhite20.japs.server.network.Connection;
-import de.jackwhite20.japs.server.network.initialize.ServerChannelInitializer;
 import de.jackwhite20.japs.server.network.initialize.ClusterPublisherChannelInitializer;
+import de.jackwhite20.japs.server.network.initialize.ServerChannelInitializer;
 import de.jackwhite20.japs.shared.config.ClusterServer;
 import de.jackwhite20.japs.shared.net.OpCode;
 import de.jackwhite20.japs.shared.pipeline.PipelineUtils;
@@ -68,6 +68,11 @@ public class JaPSServer {
     private EventLoopGroup workerGroup;
 
     private Channel serverChannel;
+
+    public JaPSServer(Config config) {
+
+        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster(), config.cleanupInterval(), config.snapshotInterval());
+    }
 
     public JaPSServer(String host, int port, int backlog, boolean debug, int workerThreads, List<ClusterServer> cluster, int cleanupInterval, int snapshotInterval) {
 
@@ -133,11 +138,6 @@ public class JaPSServer {
                 LOGGER.info("Cluster servers are connected successfully!");
             }).start();
         }
-    }
-
-    public JaPSServer(Config config) {
-
-        this(config.host(), config.port(), config.backlog(), config.debug(), config.workerThreads(), config.cluster(), config.cleanupInterval(), config.snapshotInterval());
     }
 
     private void start() {
@@ -223,6 +223,26 @@ public class JaPSServer {
         clusterPubSubBroadcast(con, channel, data);
     }
 
+    private void clusterPubSubBroadcast(Connection connection, String channel, JSONObject data) {
+
+        if (clusterPublisher.size() > 0) {
+            JSONObject clusterMessage = new JSONObject(data)
+                    .put("op", OpCode.OP_BROADCAST.getCode())
+                    .put("ch", channel);
+
+            clusterBroadcast(connection, clusterMessage);
+        }
+    }
+
+    public void clusterBroadcast(Connection connection, JSONObject data) {
+
+        // Publish it to all clusters but exclude the server which has sent it
+        // if it comes from another JaPS server but also publish it
+        // if a normal publisher client has sent it
+        clusterPublisher.stream().filter(cl -> ((connection == null || connection.host() == null) || (connection.host() != null && connection.port() != cl.port && !connection.host().equals(cl.host))))
+                .forEach(cl -> cl.write(data));
+    }
+
     public void broadcastTo(Connection con, String channel, JSONObject data, String subscriberName) {
 
         JSONObject clusterData = new JSONObject(data);
@@ -242,26 +262,6 @@ public class JaPSServer {
 
         // Broadcast it to the cluster if possible
         clusterPubSubBroadcast(con, channel, clusterData);
-    }
-
-    private void clusterPubSubBroadcast(Connection connection, String channel, JSONObject data) {
-
-        if (clusterPublisher.size() > 0) {
-            JSONObject clusterMessage = new JSONObject(data)
-                    .put("op", OpCode.OP_BROADCAST.getCode())
-                    .put("ch", channel);
-
-            clusterBroadcast(connection, clusterMessage);
-        }
-    }
-
-    public void clusterBroadcast(Connection connection, JSONObject data) {
-
-        // Publish it to all clusters but exclude the server which has sent it
-        // if it comes from another JaPS server but also publish it
-        // if a normal publisher client has sent it
-        clusterPublisher.stream().filter(cl -> ((connection == null || connection.host() == null) || (connection.host() != null && connection.port() != cl.port && !connection.host().equals(cl.host))))
-                .forEach(cl -> cl.write(data));
     }
 
     public JaPSCache cache() {

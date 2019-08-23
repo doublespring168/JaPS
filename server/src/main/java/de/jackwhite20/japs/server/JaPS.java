@@ -68,6 +68,31 @@ public class JaPS {
         instance = this;
     }
 
+    public static JaPS getInstance() {
+
+        return instance;
+    }
+
+    public static Logger getLogger() {
+
+        return instance.logger;
+    }
+
+    public static CommandManager getCommandManager() {
+
+        return instance.commandManager;
+    }
+
+    public static Config getConfig() {
+
+        return instance.config;
+    }
+
+    public static JaPSServer getServer() {
+
+        return instance.jaPSServer;
+    }
+
     public void init() {
 
         System.setProperty("library.jansi.version", "JaPS");
@@ -156,30 +181,5 @@ public class JaPS {
 
         // Explicitly exit
         System.exit(0);
-    }
-
-    public static JaPS getInstance() {
-
-        return instance;
-    }
-
-    public static Logger getLogger() {
-
-        return instance.logger;
-    }
-
-    public static CommandManager getCommandManager() {
-
-        return instance.commandManager;
-    }
-
-    public static Config getConfig() {
-
-        return instance.config;
-    }
-
-    public static JaPSServer getServer() {
-
-        return instance.jaPSServer;
     }
 }

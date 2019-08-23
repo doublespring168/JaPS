@@ -39,7 +39,7 @@ public interface Subscriber {
 
     /**
      * Disconnects the subscriber without trying to reconnect.
-     *
+     * <p>
      * Same as invoking disconnect(true).
      */
     void disconnect();

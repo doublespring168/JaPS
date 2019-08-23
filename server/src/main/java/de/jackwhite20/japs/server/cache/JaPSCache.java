@@ -21,7 +21,10 @@ package de.jackwhite20.japs.server.cache;
 
 import de.jackwhite20.japs.server.JaPS;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -74,7 +77,7 @@ public class JaPSCache {
 
     private void cleanup() {
 
-        for(Iterator<CacheEntry> it = cache.values().iterator(); it.hasNext(); ) {
+        for (Iterator<CacheEntry> it = cache.values().iterator(); it.hasNext(); ) {
             CacheEntry cacheEntry = it.next();
 
             long timestamp = cacheEntry.expireBy();
@@ -156,9 +159,14 @@ public class JaPSCache {
 
     public void close() {
 
-        if(executorService != null) {
+        if (executorService != null) {
             executorService.shutdown();
         }
+    }
+
+    public void put(String key, Object value) {
+
+        put(key, value, -1);
     }
 
     public void put(String key, Object value, int secondsToLive) {
@@ -174,11 +182,6 @@ public class JaPSCache {
         long expireBy = secondsToLive != -1 ? System.currentTimeMillis() + (secondsToLive * 1000) : secondsToLive;
 
         cache.put(key, new CacheEntry(expireBy, value));
-    }
-
-    public void put(String key, Object value) {
-
-        put(key, value, -1);
     }
 
     public Object get(String key) {
@@ -202,6 +205,11 @@ public class JaPSCache {
         return entry.value();
     }
 
+    public boolean remove(String key) {
+
+        return getAndRemove(key) != null;
+    }
+
     public Object getAndRemove(String key) {
 
         if (key == null) {
@@ -215,11 +223,6 @@ public class JaPSCache {
         }
 
         return null;
-    }
-
-    public boolean remove(String key) {
-
-        return getAndRemove(key) != null;
     }
 
     public boolean has(String key) {

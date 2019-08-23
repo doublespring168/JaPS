@@ -38,7 +38,7 @@ public interface Publisher {
 
     /**
      * Disconnects the publisher without trying to reconnect.
-     *
+     * <p>
      * Same as invoking disconnect(true).
      */
     void disconnect();

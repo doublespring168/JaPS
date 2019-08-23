@@ -43,6 +43,10 @@ public class AsyncPublisherImpl implements AsyncPublisher {
     }
 
     @Override
+    public ExecutorService executorService() {
+
+        return executorService;
+    }    @Override
     public void disconnect(boolean force) {
 
         publisher.disconnect(force);
@@ -132,9 +136,5 @@ public class AsyncPublisherImpl implements AsyncPublisher {
         return publisher.clusterServers();
     }
 
-    @Override
-    public ExecutorService executorService() {
 
-        return executorService;
-    }
 }

@@ -45,22 +45,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class NioSocketClient extends SimpleChannelInboundHandler<JSONObject> {
 
     private static final int CONNECT_TIMEOUT = 2000;
-
-    private List<ClusterServer> clusterServers = new ArrayList<>();
-
-    private Channel channel;
-
-    private boolean connected;
-
-    private AtomicBoolean reconnecting = new AtomicBoolean(false);
-
-    private Queue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
-
     protected String name;
-
+    private List<ClusterServer> clusterServers = new ArrayList<>();
+    private Channel channel;
+    private boolean connected;
+    private AtomicBoolean reconnecting = new AtomicBoolean(false);
+    private Queue<JSONObject> sendQueue = new ConcurrentLinkedQueue<>();
     private String host;
 
     private int port;
+
+    public NioSocketClient(List<ClusterServer> clusterServers) {
+
+        this(clusterServers, "server");
+    }
 
     public NioSocketClient(List<ClusterServer> clusterServers, String name) {
 
@@ -83,17 +81,6 @@ public abstract class NioSocketClient extends SimpleChannelInboundHandler<JSONOb
             throw new ConnectException("cannot initially connect to " + first.host() + ":" + first.port());
         }
     }
-
-    public NioSocketClient(List<ClusterServer> clusterServers) {
-
-        this(clusterServers, "server");
-    }
-
-    public abstract void clientConnected();
-
-    public abstract void clientReconnected();
-
-    public abstract void received(JSONObject jsonObject);
 
     public boolean connect(String host, int port) {
 
@@ -130,11 +117,15 @@ public abstract class NioSocketClient extends SimpleChannelInboundHandler<JSONOb
         return connected;
     }
 
+    public abstract void clientReconnected();
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
 
         clientConnected();
     }
+
+    public abstract void clientConnected();
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
@@ -157,6 +148,8 @@ public abstract class NioSocketClient extends SimpleChannelInboundHandler<JSONOb
 
         received(jsonObject);
     }
+
+    public abstract void received(JSONObject jsonObject);
 
     private void addToQueue(JSONObject jsonObject) {
 

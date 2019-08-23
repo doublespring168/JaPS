@@ -63,9 +63,10 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
         this.remoteAddress = channel.remoteAddress();
     }
 
-    public void send(JSONObject jsonObject) {
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
 
-        channel.writeAndFlush(jsonObject);
+        LOGGER.log(Level.FINE, "[{0}] New connection", remoteAddress.toString());
     }
 
     @Override
@@ -77,9 +78,15 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 
-        LOGGER.log(Level.FINE, "[{0}] New connection", remoteAddress.toString());
+        ChannelUtil.closeOnFlush(channel);
+
+        if (!(cause instanceof IOException)) {
+            cause.printStackTrace();
+
+            LOGGER.log(Level.SEVERE, "Error: " + cause.toString());
+        }
     }
 
     @Override
@@ -116,7 +123,7 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
 
                 send(getResponse);
 
-                LOGGER.log(Level.FINE, "[{0}] Got cache entry {1}={2} and a callback id of {3}", new Object[] {remoteAddress.toString(), getKey, getValue, getCallbackId});
+                LOGGER.log(Level.FINE, "[{0}] Got cache entry {1}={2} and a callback id of {3}", new Object[]{remoteAddress.toString(), getKey, getValue, getCallbackId});
                 break;
             case OP_CACHE_ADD:
                 String key = jsonObject.getString("key");
@@ -127,7 +134,7 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
 
                 server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_ADD.getCode()));
 
-                LOGGER.log(Level.FINE, "[{0}] Added cache entry {1}={2} with an expire of {3}", new Object[] {remoteAddress.toString(), key, value, expire});
+                LOGGER.log(Level.FINE, "[{0}] Added cache entry {1}={2} with an expire of {3}", new Object[]{remoteAddress.toString(), key, value, expire});
                 break;
             case OP_CACHE_REMOVE:
                 String removeKey = jsonObject.getString("key");
@@ -136,7 +143,7 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
 
                 server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_REMOVE.getCode()));
 
-                LOGGER.log(Level.FINE, "[{0}] Removed cache entry with key {1}", new Object[] {remoteAddress.toString(), removeKey});
+                LOGGER.log(Level.FINE, "[{0}] Removed cache entry with key {1}", new Object[]{remoteAddress.toString(), removeKey});
                 break;
             case OP_CACHE_HAS:
                 boolean has = server.cache().has(jsonObject.getString("key"));
@@ -156,7 +163,7 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
 
                 server.clusterBroadcast(this, jsonObject.put("op", OpCode.OP_CACHE_SET_EXPIRE.getCode()));
 
-                LOGGER.log(Level.FINE, "[{0}] Set expire seconds for key {1} to {2} seconds", new Object[] {remoteAddress.toString(), expireKey, expireSeconds});
+                LOGGER.log(Level.FINE, "[{0}] Set expire seconds for key {1} to {2} seconds", new Object[]{remoteAddress.toString(), expireKey, expireSeconds});
                 break;
             case OP_CACHE_GET_EXPIRE:
                 String expireGetKey = jsonObject.getString("key");
@@ -171,7 +178,7 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
 
                 send(expireGetResponse);
 
-                LOGGER.log(Level.FINE, "[{0}] Got expire in time for key {1} which will expire in {2} seconds", new Object[] {remoteAddress.toString(), expireGetKey, expireGetValue});
+                LOGGER.log(Level.FINE, "[{0}] Got expire in time for key {1} which will expire in {2} seconds", new Object[]{remoteAddress.toString(), expireGetKey, expireGetValue});
                 break;
             case OP_REGISTER_CHANNEL:
                 String channelToRegister = jsonObject.getString("ch");
@@ -206,16 +213,9 @@ public class Connection extends SimpleChannelInboundHandler<JSONObject> {
         }
     }
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+    public void send(JSONObject jsonObject) {
 
-        ChannelUtil.closeOnFlush(channel);
-
-        if (!(cause instanceof IOException)) {
-            cause.printStackTrace();
-
-            LOGGER.log(Level.SEVERE, "Error: " + cause.toString());
-        }
+        channel.writeAndFlush(jsonObject);
     }
 
     public List<String> channels() {

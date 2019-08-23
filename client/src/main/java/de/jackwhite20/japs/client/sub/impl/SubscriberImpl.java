@@ -62,23 +62,14 @@ public class SubscriberImpl extends NioSocketClient implements Subscriber {
         this(Collections.singletonList(new ClusterServer(host, port)), name);
     }
 
-    public SubscriberImpl(List<ClusterServer> clusterServers) {
-
-        this(clusterServers, NameGeneratorUtil.generateName("subscriber", ID_COUNTER.getAndIncrement()));
-    }
-
     public SubscriberImpl(List<ClusterServer> clusterServers, String name) {
 
         super(clusterServers, name);
     }
 
-    @Override
-    public void clientConnected() {
+    public SubscriberImpl(List<ClusterServer> clusterServers) {
 
-        // Register with our name
-        write(new JSONObject()
-                .put("op", OpCode.OP_SUBSCRIBER_SET_NAME.getCode())
-                .put("su", name));
+        this(clusterServers, NameGeneratorUtil.generateName("subscriber", ID_COUNTER.getAndIncrement()));
     }
 
     @Override
@@ -97,6 +88,15 @@ public class SubscriberImpl extends NioSocketClient implements Subscriber {
                 subscribeMulti(handlerInfoEntry.getValue().object().getClass());
             }
         }
+    }
+
+    @Override
+    public void clientConnected() {
+
+        // Register with our name
+        write(new JSONObject()
+                .put("op", OpCode.OP_SUBSCRIBER_SET_NAME.getCode())
+                .put("su", name));
     }
 
     @SuppressWarnings("unchecked")
@@ -150,6 +150,12 @@ public class SubscriberImpl extends NioSocketClient implements Subscriber {
         }
     }
 
+    @Override
+    public List<ClusterServer> clusterServers() {
+
+        return Collections.unmodifiableList(super.clusterServers());
+    }
+
     private String getChannelFromAnnotation(Class<?> clazz) {
 
         if (!clazz.isAnnotationPresent(Channel.class)) {
@@ -163,9 +169,7 @@ public class SubscriberImpl extends NioSocketClient implements Subscriber {
         }
 
         return channel;
-    }
-
-    @Override
+    }    @Override
     public void disconnect(boolean force) {
 
         close(force);
@@ -269,9 +273,5 @@ public class SubscriberImpl extends NioSocketClient implements Subscriber {
         return name;
     }
 
-    @Override
-    public List<ClusterServer> clusterServers() {
 
-        return Collections.unmodifiableList(super.clusterServers());
-    }
 }

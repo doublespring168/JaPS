@@ -63,13 +63,13 @@ public class PublisherImpl extends NioSocketClient implements Publisher {
     }
 
     @Override
-    public void clientConnected() {
+    public void clientReconnected() {
 
         // Not needed
     }
 
     @Override
-    public void clientReconnected() {
+    public void clientConnected() {
 
         // Not needed
     }
@@ -81,6 +81,10 @@ public class PublisherImpl extends NioSocketClient implements Publisher {
     }
 
     @Override
+    public List<ClusterServer> clusterServers() {
+
+        return Collections.unmodifiableList(super.clusterServers());
+    }    @Override
     public void disconnect(boolean force) {
 
         close(force);
@@ -206,9 +210,5 @@ public class PublisherImpl extends NioSocketClient implements Publisher {
         return asyncPublisher;
     }
 
-    @Override
-    public List<ClusterServer> clusterServers() {
 
-        return Collections.unmodifiableList(super.clusterServers());
-    }
 }

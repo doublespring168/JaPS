@@ -69,13 +69,13 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache {
     }
 
     @Override
-    public void clientConnected() {
+    public void clientReconnected() {
 
         // Not needed
     }
 
     @Override
-    public void clientReconnected() {
+    public void clientConnected() {
 
         // Not needed
     }
@@ -118,6 +118,10 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache {
     }
 
     @Override
+    public List<ClusterServer> clusterServers() {
+
+        return Collections.unmodifiableList(super.clusterServers());
+    }    @Override
     public void disconnect(boolean force) {
 
         close(force);
@@ -336,9 +340,5 @@ public class PubSubCacheImpl extends NioSocketClient implements PubSubCache {
         return asyncPubSubCache;
     }
 
-    @Override
-    public List<ClusterServer> clusterServers() {
 
-        return Collections.unmodifiableList(super.clusterServers());
-    }
 }

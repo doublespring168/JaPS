@@ -38,6 +38,14 @@ public class ConsoleHandler extends Handler {
         this.console = console;
     }
 
+    @Override
+    public void publish(LogRecord record) {
+
+        if (isLoggable(record)) {
+            print(getFormatter().format(record));
+        }
+    }
+
     public void print(String s) {
 
         try {
@@ -46,14 +54,6 @@ public class ConsoleHandler extends Handler {
             console.flush();
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void publish(LogRecord record) {
-
-        if (isLoggable(record)) {
-            print(getFormatter().format(record));
         }
     }
 
