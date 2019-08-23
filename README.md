@@ -1,10 +1,10 @@
-# JaPS
-JaPS is a robust and lightweight Java Pub/Sub library and in-memory key-value cache which uses JSON.
+# KingQ
+KingQ is a robust and lightweight Java Pub/Sub library and in-memory key-value cache which uses JSON.
 
-I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that JaPS works really well,
+I have started this project to learn myself how Pub/Sub libraries can work and it has turned out that KingQ works really well,
 therefore I have decided to publish it here on GitHub.
 
-JaPS now has also memory snapshot support to create a backup of cached data or to use it as a "persistent" memory database.
+KingQ now has also memory snapshot support to create a backup of cached data or to use it as a "persistent" memory database.
 
 # Features
 
@@ -25,7 +25,7 @@ JaPS now has also memory snapshot support to create a backup of cached data or t
 - easy to implement in other languages (PHP publisher example at the bottom)
 - async API support
 - full multi-core utilization and configurable number of threads
-- combine multiple JaPS server to a cluster
+- combine multiple KingQ server to a cluster
 - cluster failover with auto reconnect and sync
 - simple but powerful NIO implementation
 - thousands of publisher and subscriber concurrently
@@ -43,8 +43,8 @@ _Client:_
 
 ```xml
 <dependency>
-    <groupId>de.jackwhite20</groupId>
-    <artifactId>japs-client</artifactId>
+    <groupId>com.kingq</groupId>
+    <artifactId>kingQ-client</artifactId>
     <version>3.0.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -54,25 +54,25 @@ _Client:_
 _General syntax:_
 
 ```
-java -jar japs-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-c IP:Port IP:Port] [-d]
+java -jar kingQ-server.jar -h <Host> -p <Port> -b <Backlog> -t <Threads> [-c IP:Port IP:Port] [-d]
 ```
 
 _Without debugging and without cluster setup:_
 
 ```
-java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4
+java -jar kingQ-server.jar -h localhost -p 1337 -b 100 -t 4
 ```
 
 _With debugging and without cluster setup:_
 
 ```
-java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -d
+java -jar kingQ-server.jar -h localhost -p 1337 -b 100 -t 4 -d
 ```
 
 _With debugging and with cluster setup:_
 
 ```
-java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d
+java -jar kingQ-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d
 ```
 
 _Set the check (ci) or snapshot (si) interval:_
@@ -81,12 +81,12 @@ _Set the check (ci) or snapshot (si) interval:_
 // Both are in seconds
 // This will check the cache for expired entries every 10 minutes
 // and will take a memory snapshot (backup) every hour
-java -jar japs-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d -ci 600 -si 3600
+java -jar kingQ-server.jar -h localhost -p 1337 -b 100 -t 4 -c localhost:1338 -d -ci 600 -si 3600
 ```
 
 # API examples
 
-If you want to use the javadoc you can browse it [here](https://jackwhite20.github.io/JaPS/doc/).
+If you want to use the javadoc you can browse it [here](https://jackwhite20.github.io/KingQ/doc/).
 
 _Cache:_
 ```java
@@ -275,11 +275,11 @@ public class FooBar {
 
 # PHP example
 
-_JaPSPublisher:_
+_KingQPublisher:_
 ```php
 <?php
 
-class JaPSPublisher
+class KingQPublisher
 {
 
     /**
@@ -304,10 +304,10 @@ class JaPSPublisher
     private $socket;
 
     /**
-     * JaPSPublisher constructor.
+     * KingQPublisher constructor.
      */
     /**
-     * JaPSPublisher constructor.
+     * KingQPublisher constructor.
      *
      * @param string $host The host address to connect to.
      * @param int $port The host port to connect to.
@@ -362,9 +362,9 @@ _Example usage:_
 ```php
 <?php
 
-include("JaPSPublisher.php");
+include("KingQPublisher.php");
 
-$client = new JaPSPublisher("192.168.2.102", 6000);
+$client = new KingQPublisher("192.168.2.102", 6000);
 
 $client->publish("test", array("foo" => "bar1"));
 $client->publish("test", array("foo" => "bar2"));

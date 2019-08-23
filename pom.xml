@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.jackwhite20</groupId>
-    <artifactId>japs</artifactId>
+    <groupId>com</groupId>
+    <artifactId>kingQ</artifactId>
     <packaging>pom</packaging>
     <version>3.0.0-SNAPSHOT</version>
     <modules>
@@ -16,13 +16,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
-    <developers>
-        <developer>
-            <id>jackwhite20</id>
-            <email>silencephil@gmail.com</email>
-        </developer>
-    </developers>
 
     <dependencies>
         <!-- JSON -->

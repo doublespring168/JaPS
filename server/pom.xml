@@ -2,13 +2,13 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>japs</artifactId>
-        <groupId>de.jackwhite20</groupId>
+        <artifactId>kingQ</artifactId>
+        <groupId>com</groupId>
         <version>3.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>japs-server</artifactId>
+    <artifactId>kingQ-server</artifactId>
 
     <dependencies>
         <!-- Common CLI -->
@@ -18,17 +18,17 @@
             <version>20040117.000000</version>
         </dependency>
 
-        <!-- JaPS Client -->
+        <!-- KingQ Client -->
         <dependency>
-            <groupId>de.jackwhite20</groupId>
-            <artifactId>japs-client</artifactId>
+            <groupId>com</groupId>
+            <artifactId>kingQ-client</artifactId>
             <version>3.0.0-SNAPSHOT</version>
         </dependency>
 
-        <!-- JaPS Shared -->
+        <!-- KingQ Shared -->
         <dependency>
-            <groupId>de.jackwhite20</groupId>
-            <artifactId>japs-shared</artifactId>
+            <groupId>com</groupId>
+            <artifactId>kingQ-shared</artifactId>
             <version>3.0.0-SNAPSHOT</version>
         </dependency>
 
@@ -50,7 +50,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>de.jackwhite20.japs.server.Main</mainClass>
+                            <mainClass>com.kingq.server.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
